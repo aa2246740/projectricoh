@@ -1,0 +1,371 @@
+{
+  "schema": "gxr.recipe-hooks.v1",
+  "image": "artifacts/firmware/gxr-1.51/ilaunch3",
+  "image_sha256": "da1980e9d6f3996ede4953b8311cf0ce2abeb4bb300b6ee60a38f38e29a3cdf7",
+  "candidate_vma_approved": false,
+  "camera_verified": false,
+  "upgrade_package_generated": false,
+  "hook_count": 8,
+  "hooks": [
+    {
+      "id": "init_recipe_cache",
+      "va": "0x2028709c",
+      "file_offset": "0x23c29c",
+      "segment": 9,
+      "length": 8,
+      "original_bytes": "d0c0202780e01fec",
+      "new_bytes": "d0c0200580e0276c",
+      "instruction_kind": "SETH_OR3",
+      "parameters_and_return": "Retain native prologue, 0x20331d18 call and overlay_word=32. Existing jl r0 at 0x202870a4 returns cursor 1..16 in r0; saves r8..r13/lr.",
+      "original_disassembly": [
+        {
+          "file": "research/tooling_m32r/disasm/ilaunch3-sec09-load-2025d800.disasm.txt",
+          "line": 42543,
+          "text": "2028709c:\td0 c0 20 27 \tseth r0,#0x2027"
+        }
+      ],
+      "branch_checks": [
+        {
+          "kind": "absolute_u32",
+          "target": "0x2005276c",
+          "delta_limit": null,
+          "pass": true
+        }
+      ],
+      "original_target_va": "0x20271fec",
+      "target_symbol": "ricoh_recipe_open",
+      "target_va": "0x2005276c",
+      "continuations": [
+        "0x202870a8"
+      ],
+      "replacement_disassembly": "firmware/stage2b_deep_select_fix/build/init_recipe_cache-disasm.txt"
+    },
+    {
+      "id": "init_cursor_bypass_enum",
+      "va": "0x202870a8",
+      "file_offset": "0x23c2a8",
+      "segment": 9,
+      "length": 4,
+      "original_bytes": "12806005",
+      "new_bytes": "18807f1c",
+      "instruction_kind": "MV_BRA8",
+      "parameters_and_return": "mv r8,r0 executes before bra.s. Skip native seven-value switch; resume common type5/layer2/tag33 init. lr unchanged.",
+      "original_disassembly": [
+        {
+          "file": "research/tooling_m32r/disasm/ilaunch3-sec09-load-2025d800.disasm.txt",
+          "line": 42546,
+          "text": "202870a8:\t12 80 60 05 \tmv r2,r0 -> ldi r0,#5"
+        }
+      ],
+      "branch_checks": [
+        {
+          "pc": "0x202870aa",
+          "target": "0x20287118",
+          "delta_bytes": 112,
+          "bits": 8,
+          "min_bytes": -512,
+          "max_bytes": 508,
+          "pass": true
+        }
+      ],
+      "continuations": [
+        "0x20287118"
+      ],
+      "original_flow": "Displaced mv r2,r0; ldi r0,5, then seven-mode conditional switch.",
+      "replacement_disassembly": "firmware/stage2b_deep_select_fix/build/init_cursor_bypass_enum-disasm.txt"
+    },
+    {
+      "id": "adj_name_table",
+      "va": "0x2022f5a8",
+      "file_offset": "0x1e47a8",
+      "segment": 8,
+      "length": 4,
+      "original_bytes": "2022d610",
+      "new_bytes": "20053f30",
+      "instruction_kind": "BE32_TABLE_POINTER",
+      "parameters_and_return": "Only ADJ type5 descriptor. First open publishes the resident heap table; close clears its open flag without freeing native label addresses. Reopen reloads the banks using the same allocation.",
+      "original_disassembly": [
+        {
+          "file": "research/tooling_m32r/disasm/ilaunch3-sec08-load-201bdc00.disasm.txt",
+          "line": 113615,
+          "text": "2022f5a8:\t20 22 d6 10 \tsth r0,@r2 || srli r6,#0x10"
+        }
+      ],
+      "branch_checks": [],
+      "target_symbol": "rfw_closed_table",
+      "target_va": "0x20053f30"
+    },
+    {
+      "id": "adj_count_16",
+      "va": "0x2022f5ac",
+      "file_offset": "0x1e47ac",
+      "segment": 8,
+      "length": 1,
+      "original_bytes": "07",
+      "new_bytes": "10",
+      "instruction_kind": "U8_COUNT",
+      "parameters_and_return": "Change only ADJ count. Preserve three ff control bytes and zero filter pointer. Main-menu seven-item descriptor is unchanged.",
+      "original_disassembly": [
+        {
+          "file": "research/tooling_m32r/disasm/ilaunch3-sec08-load-201bdc00.disasm.txt",
+          "line": 113616,
+          "text": "2022f5ac:\t07 ff ff ff \tbtst #0x7,sp || bra 0x2022f5a8"
+        }
+      ],
+      "branch_checks": []
+    },
+    {
+      "id": "adj_empty_details",
+      "va": "0x201febe4",
+      "file_offset": "0x1b3de4",
+      "segment": 8,
+      "length": 8,
+      "original_bytes": "d2c0202382e2fd38",
+      "new_bytes": "d2c0200582e23e30",
+      "instruction_kind": "SETH_OR3",
+      "parameters_and_return": "Keep r11/type discrimination and type9 branch. Substitute 16 x 12 zero bytes, preventing row8..16 reads of old seven-item details.",
+      "original_disassembly": [
+        {
+          "file": "research/tooling_m32r/disasm/ilaunch3-sec08-load-201bdc00.disasm.txt",
+          "line": 66561,
+          "text": "201febe4:\td2 c0 20 23 \tseth r2,#0x2023"
+        }
+      ],
+      "branch_checks": [
+        {
+          "kind": "absolute_u32",
+          "target": "0x20053e30",
+          "delta_limit": null,
+          "pass": true
+        }
+      ],
+      "original_target_va": "0x2023fd38",
+      "target_symbol": "rfw_no_details",
+      "target_va": "0x20053e30",
+      "continuations": [
+        "0x201febec"
+      ],
+      "replacement_disassembly": "firmware/stage2b_deep_select_fix/build/adj_empty_details-disasm.txt"
+    },
+    {
+      "id": "fn2_no_editor",
+      "va": "0x202be24c",
+      "file_offset": "0x27344c",
+      "segment": 9,
+      "length": 4,
+      "original_bytes": "d0c02026",
+      "new_bytes": "fff651dc",
+      "instruction_kind": "BRA24",
+      "parameters_and_return": "Original bne at 202be248 rejects non-Image activities before payload entry. For Image, only active type5/layer2/tag33/state2022f71c returns handled=2 using saved r8 and native epilogue, including failed-load or closed-cache states with 16 visible rows. Inactive fallback replays seth r0,2026 and resumes 202be250. Preserve all other live registers and PSW.",
+      "original_disassembly": [
+        {
+          "file": "research/tooling_m32r/disasm/ilaunch3-sec09-load-2025d800.disasm.txt",
+          "line": 98971,
+          "text": "202be24c:\td0 c0 20 26 \tseth r0,#0x2026"
+        }
+      ],
+      "branch_checks": [
+        {
+          "pc": "0x202be24c",
+          "target": "0x200529bc",
+          "delta_bytes": -2537616,
+          "bits": 24,
+          "min_bytes": -33554432,
+          "max_bytes": 33554428,
+          "pass": true
+        }
+      ],
+      "target_symbol": "recipe_fn2_guard",
+      "target_va": "0x200529bc",
+      "continuations": [
+        "0x202be250",
+        "0x202be6a8"
+      ],
+      "original_flow": "Original bne at 0x202be248 stays intact; displaced seth r0,0x2026 resumes at 0x202be250.",
+      "replacement_disassembly": "firmware/stage2b_deep_select_fix/build/fn2_no_editor-disasm.txt"
+    },
+    {
+      "id": "adj_confirm_close",
+      "va": "0x202871d8",
+      "file_offset": "0x23c3d8",
+      "segment": 9,
+      "length": 4,
+      "original_bytes": "2e7ff000",
+      "new_bytes": "fff72db9",
+      "instruction_kind": "BRA24",
+      "parameters_and_return": "Preserve all registers/PSW for the page-type guard. Only active type5/layer2/tag33/state2022f71c enters the recipe action. Otherwise replay push lr and resume original function at 202871dc with original r4. Recipe route maps native r4=keep_open to GCC r0 and never indexes old seven-mode enums.",
+      "original_disassembly": [
+        {
+          "file": "research/tooling_m32r/disasm/ilaunch3-sec09-load-2025d800.disasm.txt",
+          "line": 42622,
+          "text": "202871d8:\t2e 7f f0 00 \tpush lr || nop"
+        }
+      ],
+      "branch_checks": [
+        {
+          "pc": "0x202871d8",
+          "target": "0x200528bc",
+          "delta_bytes": -2312476,
+          "bits": 24,
+          "min_bytes": -33554432,
+          "max_bytes": 33554428,
+          "pass": true
+        }
+      ],
+      "target_symbol": "ricoh_recipe_action",
+      "target_va": "0x200528bc",
+      "continuations": [
+        "0x202871dc"
+      ],
+      "original_flow": "Original function prologue push lr; original return jmp lr at 0x202872dc.",
+      "return_address_mode": "inherited_native_lr",
+      "preserved_call_examples": [
+        {
+          "call_va": "0x202b8d98",
+          "return_va": "0x202b8d9c",
+          "r4": 0,
+          "original_bytes": "64001ec0",
+          "target_construction_verified": true
+        },
+        {
+          "call_va": "0x202bd88c",
+          "return_va": "0x202bd890",
+          "r4": 0,
+          "original_bytes": "64001ec0",
+          "target_construction_verified": true
+        },
+        {
+          "call_va": "0x202bea50",
+          "return_va": "0x202bea54",
+          "r4": 0,
+          "original_bytes": "64001ec0",
+          "target_construction_verified": true
+        },
+        {
+          "call_va": "0x202c2d70",
+          "return_va": "0x202c2d74",
+          "r4": 1,
+          "original_bytes": "64011ec0",
+          "target_construction_verified": true
+        },
+        {
+          "call_va": "0x202c2d80",
+          "return_va": "0x202c2d84",
+          "r4": 0,
+          "original_bytes": "64001ec0",
+          "target_construction_verified": true
+        }
+      ],
+      "replacement_disassembly": "firmware/stage2b_deep_select_fix/build/adj_confirm_close-disasm.txt"
+    },
+    {
+      "id": "live_recipe_commit",
+      "va": "0x202bb968",
+      "file_offset": "0x270b68",
+      "segment": 9,
+      "length": 4,
+      "original_bytes": "dbc02022",
+      "new_bytes": "fff65bf5",
+      "instruction_kind": "BRA24",
+      "parameters_and_return": "Original ldi r2,8 and bne at 202bb964 reject non-Image activities before payload entry. If recipe UI is active (type5/layer2/tag33/state2022f71c), consume native cursor at 2022f726 then return through 202bcf58 even if the cache is unavailable, avoiding all seven-mode setters. Inactive fallback replays seth r11,2022 and resumes 202bb96c. Save all other live GPRs/lr/PSW.",
+      "original_disassembly": [
+        {
+          "file": "research/tooling_m32r/disasm/ilaunch3-sec09-load-2025d800.disasm.txt",
+          "line": 96354,
+          "text": "202bb968:\tdb c0 20 22 \tseth r11,#0x2022"
+        }
+      ],
+      "branch_checks": [
+        {
+          "pc": "0x202bb968",
+          "target": "0x2005293c",
+          "delta_bytes": -2527276,
+          "bits": 24,
+          "min_bytes": -33554432,
+          "max_bytes": 33554428,
+          "pass": true
+        }
+      ],
+      "target_symbol": "recipe_live_commit",
+      "target_va": "0x2005293c",
+      "continuations": [
+        "0x202bb96c",
+        "0x202bcf58"
+      ],
+      "original_flow": "Original ldi and bne stay intact; displaced seth r11,0x2022 resumes at 0x202bb96c.",
+      "replacement_disassembly": "firmware/stage2b_deep_select_fix/build/live_recipe_commit-disasm.txt"
+    }
+  ],
+  "protected_code": [
+    {
+      "name": "native_layer_action",
+      "va_start": "0x201c092c",
+      "va_end_exclusive": "0x201c0cf4",
+      "file_offset": "0x175b2c",
+      "length": 968,
+      "sha256": "f8a50ec9bbf91528d47d402eee655e55c01c899e58dab4c2bd66f48e403cfa14",
+      "no_patch_overlap": true
+    },
+    {
+      "name": "native_fn2_activity_gate",
+      "va_start": "0x202be23c",
+      "va_end_exclusive": "0x202be24c",
+      "file_offset": "0x27343c",
+      "length": 16,
+      "sha256": "b4956e5584d60196122a1318d193fd25d417033511aa820ba521dcca79256494",
+      "no_patch_overlap": true
+    },
+    {
+      "name": "native_live_activity_gate",
+      "va_start": "0x202bb960",
+      "va_end_exclusive": "0x202bb968",
+      "file_offset": "0x270b60",
+      "length": 8,
+      "sha256": "2d74a53669f365bc94a19713451ce577c9cf8ea19a2eea130465c18127f772ee",
+      "no_patch_overlap": true
+    },
+    {
+      "name": "native_adj_function_dispatch",
+      "va_start": "0x202ba6fc",
+      "va_end_exclusive": "0x202ba9e8",
+      "file_offset": "0x26f8fc",
+      "length": 748,
+      "sha256": "a27de221f69d637a6f02cfec81a717fa80f598a026fec0c8efe25b9315b72fff",
+      "no_patch_overlap": true
+    },
+    {
+      "name": "native_adj_function_case_table",
+      "va_start": "0x20377434",
+      "va_end_exclusive": "0x20377460",
+      "file_offset": "0x32c634",
+      "length": 44,
+      "sha256": "3be70edf768a42f3c65feff77f82e4f45fceca15712505d4df9de96814c15967",
+      "no_patch_overlap": true
+    }
+  ],
+  "payload_patch": {
+    "va": "0x2005276c",
+    "file_offset": "0x796c",
+    "segment": 0,
+    "length": 8000,
+    "instruction_kind": "PAYLOAD",
+    "original_bytes": {
+      "repeat": "ff",
+      "count": 8000
+    },
+    "original_sha256": "bbc0f58b6ba541901c4e0a54d7c4dc92e24c2f2f8abd5a83839188b6ec7db0ba",
+    "new_bytes_asset": "firmware/stage2b_deep_select_fix/build/payload.bin",
+    "new_sha256": "d13561d6970f3e718f8c9eaaf9386e45eec3cf4c0d2e64cd18ddf74d9876a629",
+    "equal_length": true
+  },
+  "probe_contract": {
+    "va_start": "0x20054700",
+    "va_end_exclusive": "0x20054800",
+    "file_offset": "0x9900",
+    "length": 256,
+    "owner": "probe worker",
+    "integration_writes": false,
+    "initial_bytes": "ff",
+    "additional_free_bytes_before_tail": 84
+  }
+}

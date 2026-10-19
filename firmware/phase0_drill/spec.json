@@ -1,0 +1,20 @@
+{
+  "name": "phase0-drill-isx",
+  "purpose": "Flash drill only: playback info shows ISX instead of ISO. Reflash official 1.51 afterwards.",
+  "patches": [
+    {
+      "name": "ISO label O->X, producer 0x20319C00 (9 callers, OSD node at 310,428)",
+      "file": "ilaunch3",
+      "offset": "0x330D84",
+      "expected": "49 53 4f 20 25 64 00",
+      "replacement": "49 53 58 20 25 64 00"
+    },
+    {
+      "name": "ISO label O->X, producer 0x203183E8 (4 callers, OSD node at 44,186)",
+      "file": "ilaunch3",
+      "offset": "0x330D6E",
+      "expected": "49 53 4f 20 25 64 00",
+      "replacement": "49 53 58 20 25 64 00"
+    }
+  ]
+}

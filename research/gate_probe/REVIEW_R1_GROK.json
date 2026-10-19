@@ -1,0 +1,88 @@
+{
+  "status": "PASS_WITH_NOTES",
+  "image": {
+    "probe_sha256": "94c797cb1f98e450aaaf312fb5ff5b4f80e04e5fa7be246ed0eac13b36c685c0",
+    "official_sha256": "da1980e9d6f3996ede4953b8311cf0ce2abeb4bb300b6ee60a38f38e29a3cdf7",
+    "probe_checksum": "0x6AA27CB7",
+    "official_checksum": "0x6ACDB212",
+    "diff_bytes": 2912,
+    "host_test": "host-ok"
+  },
+  "reverified_1_to_5": {
+    "verdict": "PASS",
+    "evidence": "probe sha256 and checksum recomputed; 2912 differing bytes in 39 runs, all inside [0x16C,0x170), [0x796C,0x9900), or the five hooks; keep sites and jump table unchanged; glyphs/labels/table/no_details/tail/reentry checked; dispatcher 0x202BA770 rewrites r0 before 0x2026AE38"
+  },
+  "items": {
+    "A": {
+      "verdict": "PASS",
+      "summary": "本探针的 16 行最多写出 21 字节，停在字形格内。gxr_language 不会返回 10，所以 FF FE 前缀走不到。",
+      "evidence": [
+        "0x201D73E0 pushes lr, returns if r4==0 or r6==0, jl 0x201D330C; bytes at 0x201D73F0 are d0c0201d 80e0330c",
+        "0x201D379C stops on NUL or r1 >= length; 0x201D37B8 writes one 0",
+        "search tables 0x2023BC6F (60) and 0x2023BCAB (34): each of A-Z 0-9 = . - occurs once, so 2 output bytes per input byte",
+        "10 chars + NUL = 21; last cell 0x20052D0C, labels at 0x20052D6C",
+        "0x201DC180 returns 1 when *(u8*)0x2023EAB8==10, else that byte, so r7==10 is not passed",
+        "language index > 10 is not in the second pointer table at 0x2022250C (11 valid pointers). Image byte is 0. That would fault the copy, not overflow the cell"
+      ]
+    },
+    "B": {
+      "verdict": "PASS_WITH_NOTES",
+      "summary": "flags=0 时画家和直接子调用不重入初始化、不写被禁止的地址、不发 RPC。子调用的下一层没有展开。",
+      "evidence": [
+        "painter body is 0x201FD360..0x201FD7D8, not through 0x201FDE90",
+        "r6=0 path calls 0x201FF3D4, 0x201FDD10, 0x201D7AB4; 0x201FD474 bra 0x201FD7C8 skips 0x201DC2D8",
+        "those three bodies have no seth/or3 or displaced access of 0x20287080, 0x2009005C, 0x201C092C, 0x202D6F38, 0x200C0DAC, 0x205D9BF8, 0x2022F71C, 0x205A280F, 0x205A27D4",
+        "*(u32*)0x2022F720=0x2022F56C; +5*12=0x2022F5A8; +8 filter remains 00000000, so 0x201FD40C beqz skips state+9/+10 writes. Painter stores that 0 to 0x205D4F64",
+        "0x201FDD10's ten callees are not themselves the watched entries; their bodies were not opened"
+      ]
+    },
+    "C": {
+      "verdict": "PASS_WITH_NOTES",
+      "summary": "第二次绘制比原厂 push 里的那次画家调用深约 60 字节。gxr_ascii 另有一帧 556 字节，原厂这次绘制不经过它。任务栈大小未知。",
+      "evidence": [
+        "probe_render.su body 72 = 7 pushes + addi sp,#-44 at 0x20052F8C; entry 28; bridge 28; init frame at the hook is 8",
+        "0x201D330C is add3 sp,#-528 plus 7 pushes = 556; four 128-byte clears fit in sp+44..sp+555",
+        "ascii peak from 0x20287080 entry: 696",
+        "painter 60, 0x201FDD10 296, deepest measured child 0x201D7170 is 72; our paint peak to that layer 564",
+        "factory chain 0x201C07E0 28 + 0x201D82FC 20 + 0x201FFD68 20 + painter 60 + text 296 + child 72 = 504 above the same init frame",
+        "task stack limit not found"
+      ]
+    },
+    "D": {
+      "verdict": "PASS_WITH_NOTES",
+      "summary": "五个 jl 之后都不读 r0。开页不到 0x202C31CC。确认键会到那里，清掉活动字，并可能写设置块。",
+      "evidence": [
+        "0x202B8D9C bra 0x202B9064; 0x202BD890 bra 0x202BDC1C; 0x202BEA54 bra 0x202BEC50; 0x202C2D74 and 0x202C2D84 bra 0x202C31CC. Each jl target is 0x202871D8",
+        "probe bytes at 0x202871D8 are 1fcef000",
+        "activity != 16 and != 18 falls to 0x202C3384. Image Settings activity is 8",
+        "0x2026AE38 is stb r4,@0x205D9A89; 0x202C3398 stores 0 to 0x205D9BF8",
+        "0x202738AC returns *(u8*)0x205D9A7F. If that is 1, 0x20273828 loads *(u32*)0x200C0DAC and can stb 0 at settings+949, or indirect-jump when that byte < 45. The jump table was not expanded",
+        "0x20287080 returns at 0x202871D4 and does not fall into the confirm function"
+      ]
+    },
+    "E": {
+      "verdict": "PASS_WITH_NOTES",
+      "summary": "三处编码正确。16 行的名字表和 192 字节附加表盖住下标 0..15。开页光标是 1..7。下标 16 会读出附加表。",
+      "evidence": [
+        "d0c02005 80e02eac decodes like the official seth/or3 pair with immediates 0x2005 and 0x2eac, address 0x20052EAC",
+        "d2c02005 82e22dec is r2=0x20052DEC",
+        "1fcef000 is jmp lr || nop",
+        "descriptor probe bytes 20052dac10ffffff00000000; +8 filter stays 0",
+        "detail index = selection-1 after the compare at 0x201FED14; loads at +0/+4/+8 are 4 bytes and beqz on zero",
+        "index 15 ends at byte 192; index 16 reads 0x20052EAC. Open cursor stores 1..7 at 0x2022F726. Dial clamp not fully traced"
+      ]
+    },
+    "F": {
+      "verdict": "PASS_WITH_NOTES",
+      "summary": "按设计的开页动作，没有对上一条会写设置块或必然死机的新指令。确认键、语言字节大于 10、画家孙调用、电源键仍是未闭合的边。",
+      "evidence": [
+        "open path runs factory 0x201C06F4 / 0x201C07E0 / 0x201C092C before the hook; part writes there are pre-sample factory behavior",
+        "0x201C3D08 head has no jl and no watched immediate; whether it pushes further is not fully traced",
+        "grandchildren of the painter, language byte > 10, and power-off stores remain unknown",
+        "pressing the confirm key is the real settings-write path and is not part of opening the page"
+      ]
+    }
+  },
+  "blocks_open_page": false,
+  "blocks_confirm_key": true
+}

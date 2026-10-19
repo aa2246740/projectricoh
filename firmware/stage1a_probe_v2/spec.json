@@ -1,0 +1,226 @@
+{
+  "schema": "gxr-function-rewrite-spec-v2",
+  "name": "stage1a-probe-v2-compact",
+  "status": "EXPERIMENTAL_CANDIDATE_HOST_ACCEPTANCE_REQUIRED",
+  "mode": "experimental",
+  "patch_kind": "inplace-function-rewrite",
+  "slot_method": "COMPACTION",
+  "update_mode_guard": false,
+  "dropped_requirement": "R2 removed by orchestrator in Round 2; no mode/update guard",
+  "ranges": [
+    {
+      "section": ".text.alt",
+      "entry_symbol": "producer_alt",
+      "va_start": "0x203183e8",
+      "va_end": "0x203184bc",
+      "file_start": "0x2cd5e8",
+      "file_end": "0x2cd6bc",
+      "original_bytes": "4f f8 28 7f 18 84 2e 7f 65 00 f0 00 d0 c0 20 06 84 af 00 08 80 e0 27 50 66 05 1e c0 d0 c0 20 5d 80 e0 f0 74 20 a0 f0 00 b0 c0 00 06 d0 c0 20 5d 80 e0 f0 74 20 a0 f0 00 80 40 27 10 7d 01 7f 08 b0 88 00 23 d0 c0 20 31 d4 c0 20 5e 80 e0 89 b4 a4 94 44 60 65 00 1e c0 7f 1d f0 00 20 7f f0 00 d0 c0 20 37 80 e0 bb 6e 20 7f f0 00 d4 c0 20 23 d0 c0 20 0b 84 e4 4b d0 80 e0 bc 7c 1e c0 f0 00 4f 08 f0 00 d0 c0 20 5e 80 e0 42 f9 20 90 f0 00 b0 80 00 0a d0 c0 20 37 80 e0 bb 75 20 7f f0 00 d4 c0 20 23 d0 c0 20 0b 84 e4 4b d0 80 e0 bc 7c 1e c0 f0 00 4f 04 f0 00 d0 c0 20 31 d4 c0 20 5e 80 e0 89 b4 a4 94 44 60 15 88 1e c0 2e ef 28 ef 4f 08 1f ce",
+      "original_sha256": "70661cb87e63f0832cac1ae283f49fe91ba40d786357a4f370791c0ce71afb7c"
+    },
+    {
+      "section": ".text.normal",
+      "entry_symbol": "producer_normal",
+      "va_start": "0x20319c00",
+      "va_end": "0x20319cd4",
+      "file_start": "0x2cee00",
+      "file_end": "0x2ceed4",
+      "original_bytes": "4f f8 28 7f 18 84 2e 7f 65 00 f0 00 d0 c0 20 06 84 af 00 08 80 e0 27 50 66 05 1e c0 d0 c0 20 5d 80 e0 f0 74 20 a0 f0 00 b0 c0 00 06 d0 c0 20 5d 80 e0 f0 74 20 a0 f0 00 80 40 27 10 7d 01 7f 08 b0 88 00 23 d0 c0 20 31 d4 c0 20 5e 80 e0 89 b4 a4 94 44 5e 65 00 1e c0 7f 1d f0 00 20 7f f0 00 d0 c0 20 37 80 e0 bb 84 20 7f f0 00 d4 c0 20 23 d0 c0 20 0b 84 e4 4b d0 80 e0 bc 7c 1e c0 f0 00 4f 08 f0 00 d0 c0 20 5e 80 e0 42 f9 20 90 f0 00 b0 80 00 0a d0 c0 20 37 80 e0 bb 8b 20 7f f0 00 d4 c0 20 23 d0 c0 20 0b 84 e4 4b d0 80 e0 bc 7c 1e c0 f0 00 4f 04 f0 00 d0 c0 20 31 d4 c0 20 5e 80 e0 89 b4 a4 94 44 5e 15 88 1e c0 2e ef 28 ef 4f 08 1f ce",
+      "original_sha256": "2fbddffdbeabe76dabb15471e07bd1f4e7bdeb27275a4d0ced2e74b3e84b4b60"
+    }
+  ],
+  "approval": {
+    "path": "firmware/stage1a_probe_v2/build/approval.json",
+    "sha256": "d98d5d2c33a3abd38fa39316148a4ede901528446e3cc5df1354d025f738fa83"
+  },
+  "sources": {
+    "rewrite.S": {
+      "path": "firmware/stage1a_probe_v2/rewrite.S",
+      "sha256": "159a3ba8b52512f63361e04d7cb410ff6dd2498ffd9a48d5449448b4d864a8d7"
+    },
+    "rewrite.ld": {
+      "path": "firmware/stage1a_probe_v2/rewrite.ld",
+      "sha256": "ed22d3c6af76cd753e450c29330d5cfc7001718d54e92a5367373da82ccd671c"
+    },
+    "build_rewrite.py": {
+      "path": "firmware/stage1a_probe_v2/build_rewrite.py",
+      "sha256": "bb72b1d4009311f8ab0090d0c622d38eb7002c8d27b9c833c1b05b70956fc543"
+    }
+  },
+  "elf": {
+    "path": "firmware/stage1a_probe_v2/build/rewrite.elf",
+    "sha256": "7cffcde0fb3367215227f42107d49931144ac39506275d0e0e7309bc9c4d4719"
+  },
+  "payload": {
+    "path": "firmware/stage1a_probe_v2/build/rewrite.bin",
+    "sha256": "32e56c7bd353d2540d033e0d0c4f29ec0633ab05fffc3d8052f91f3204ea4753"
+  },
+  "map": {
+    "path": "firmware/stage1a_probe_v2/build/rewrite.map",
+    "sha256": "6c48c7b0485e946824a65db112e3ff4b0a97cba2157c0a5aced0f29c6d3d43ad"
+  },
+  "branch_assertions": [
+    {
+      "va": "0x203183F8",
+      "kind": "BL24",
+      "target": "0x20062750",
+      "opcode": "fe"
+    },
+    {
+      "va": "0x20318408",
+      "kind": "BLEZ16",
+      "target": "0x20318420",
+      "opcode": "b0c0"
+    },
+    {
+      "va": "0x2031841C",
+      "kind": "BNC8",
+      "target": "0x20318420",
+      "opcode": "7d"
+    },
+    {
+      "va": "0x2031841E",
+      "kind": "BRA8",
+      "target": "0x20318430",
+      "opcode": "7f"
+    },
+    {
+      "va": "0x20318420",
+      "kind": "BEQZ16",
+      "target": "0x2031848C",
+      "opcode": "b088"
+    },
+    {
+      "va": "0x2031842E",
+      "kind": "BRA8",
+      "target": "0x20318488",
+      "opcode": "7f"
+    },
+    {
+      "va": "0x20318448",
+      "kind": "BL24",
+      "target": "0x20319C98",
+      "opcode": "fe"
+    },
+    {
+      "va": "0x2031845C",
+      "kind": "BEQZ16",
+      "target": "0x2031847C",
+      "opcode": "b080"
+    },
+    {
+      "va": "0x20318474",
+      "kind": "BL24",
+      "target": "0x200BBC7C",
+      "opcode": "fe"
+    },
+    {
+      "va": "0x20318486",
+      "kind": "BRA8",
+      "target": "0x20318488",
+      "opcode": "7f"
+    },
+    {
+      "va": "0x20318488",
+      "kind": "BL24",
+      "target": "0x203189B4",
+      "opcode": "fe"
+    },
+    {
+      "va": "0x20318494",
+      "kind": "BEQZ16",
+      "target": "0x2031848C",
+      "opcode": "b088"
+    },
+    {
+      "va": "0x203184A2",
+      "kind": "BRA8",
+      "target": "0x20318488",
+      "opcode": "7f"
+    },
+    {
+      "va": "0x20319C10",
+      "kind": "BL24",
+      "target": "0x20062750",
+      "opcode": "fe"
+    },
+    {
+      "va": "0x20319C20",
+      "kind": "BLEZ16",
+      "target": "0x20319C38",
+      "opcode": "b0c0"
+    },
+    {
+      "va": "0x20319C34",
+      "kind": "BNC8",
+      "target": "0x20319C38",
+      "opcode": "7d"
+    },
+    {
+      "va": "0x20319C36",
+      "kind": "BRA8",
+      "target": "0x20319C3C",
+      "opcode": "7f"
+    },
+    {
+      "va": "0x20319C38",
+      "kind": "BRA24",
+      "target": "0x20318494",
+      "opcode": "ff"
+    },
+    {
+      "va": "0x20319C54",
+      "kind": "BL24",
+      "target": "0x20319C98",
+      "opcode": "fe"
+    },
+    {
+      "va": "0x20319C68",
+      "kind": "BEQZ16",
+      "target": "0x20319C88",
+      "opcode": "b080"
+    },
+    {
+      "va": "0x20319C80",
+      "kind": "BL24",
+      "target": "0x200BBC7C",
+      "opcode": "fe"
+    },
+    {
+      "va": "0x20319C94",
+      "kind": "BRA24",
+      "target": "0x20318488",
+      "opcode": "ff"
+    },
+    {
+      "va": "0x20319CB4",
+      "kind": "BNEZ16",
+      "target": "0x20319CA8",
+      "opcode": "b091"
+    },
+    {
+      "va": "0x20319CC0",
+      "kind": "BEQZ16",
+      "target": "0x20319CC8",
+      "opcode": "b082"
+    },
+    {
+      "va": "0x20319CCC",
+      "kind": "BRA24",
+      "target": "0x200BBC7C",
+      "opcode": "ff"
+    }
+  ],
+  "candidate_region": [
+    "0x2005276C",
+    "0x20054800"
+  ],
+  "candidate_region_bytes": 8340,
+  "candidate_region_must_remain_official_ff": true,
+  "official_ilaunch3_sha256": "da1980e9d6f3996ede4953b8311cf0ce2abeb4bb300b6ee60a38f38e29a3cdf7",
+  "package": "artifacts/stage1a-probe/packages/stage1a-probe-v2-compact",
+  "equivalence_evidence": "research/stage1a_probe_v2/evidence/equivalence.json",
+  "camera_execution_verified": false,
+  "expected_ilaunch3_sha256": "67dc96048aa23bf1ed4032be130744c0b0ac0ddf45baa3551e1b960d74577437",
+  "expected_changed_bytes": 386
+}

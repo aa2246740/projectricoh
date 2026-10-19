@@ -1,0 +1,217 @@
+{
+  "official_sha256": "da1980e9d6f3996ede4953b8311cf0ce2abeb4bb300b6ee60a38f38e29a3cdf7",
+  "official_len": 3993340,
+  "stage2b_sha256": "f78230a64535a5d114faeeff9cb787aa49e7f72c21474a0d4ee8ccabb7feb8a5",
+  "stage2b_len": 3993340,
+  "jlaunch3_sha256": "951be1c659c85af58ae3e4ce98707c52f0b4514fc2075256854d59f822671673",
+  "checks": [
+    {
+      "label": "post-layer seth/or3, proposed hook",
+      "va": "0x202871c4",
+      "file_offset": "0x23c3c4",
+      "expected": "d0c0203380e01d14",
+      "actual": "d0c0203380e01d14",
+      "ok": true
+    },
+    {
+      "label": "jl r0 after proposed hook",
+      "va": "0x202871cc",
+      "file_offset": "0x23c3cc",
+      "expected": "1ec0f000",
+      "actual": "1ec0f000",
+      "ok": true
+    },
+    {
+      "label": "stock image-mode getter call, left unchanged",
+      "va": "0x2028709c",
+      "file_offset": "0x23c29c",
+      "expected": "d0c0202780e01fec",
+      "actual": "d0c0202780e01fec",
+      "ok": true
+    },
+    {
+      "label": "stock cursor switch, left unchanged",
+      "va": "0x202870a8",
+      "file_offset": "0x23c2a8",
+      "expected": "12806005",
+      "actual": "12806005",
+      "ok": true
+    },
+    {
+      "label": "ldi r4,#5",
+      "va": "0x20287118",
+      "file_offset": "0x23c318",
+      "expected": "6405f000",
+      "actual": "6405f000",
+      "ok": true
+    },
+    {
+      "label": "stb type -> jl 0x2028579c",
+      "va": "0x2028712c",
+      "file_offset": "0x23c32c",
+      "expected": "24011ec0",
+      "actual": "24011ec0",
+      "ok": true
+    },
+    {
+      "label": "jl 0x201c07e0 push",
+      "va": "0x202871a4",
+      "file_offset": "0x23c3a4",
+      "expected": "67001ec0",
+      "actual": "67001ec0",
+      "ok": true
+    },
+    {
+      "label": "jl 0x201c092c layer action",
+      "va": "0x202871c0",
+      "file_offset": "0x23c3c0",
+      "expected": "66001ec0",
+      "actual": "66001ec0",
+      "ok": true
+    },
+    {
+      "label": "dispatcher activity load, must stay",
+      "va": "0x202ba6fc",
+      "file_offset": "0x26f8fc",
+      "expected": "d2c0205e",
+      "actual": "d2c0205e",
+      "ok": true
+    },
+    {
+      "label": "ld activity word",
+      "va": "0x202ba700",
+      "file_offset": "0x26f900",
+      "expected": "a1c29bf8",
+      "actual": "a1c29bf8",
+      "ok": true
+    },
+    {
+      "label": "activity-8 case seth",
+      "va": "0x202ba764",
+      "file_offset": "0x26f964",
+      "expected": "d0c02028",
+      "actual": "d0c02028",
+      "ok": true
+    },
+    {
+      "label": "activity-8 case or3 -> 0x20287080",
+      "va": "0x202ba768",
+      "file_offset": "0x26f968",
+      "expected": "80e07080",
+      "actual": "80e07080",
+      "ok": true
+    },
+    {
+      "label": "type5 descriptor",
+      "va": "0x2022f5a8",
+      "file_offset": "0x1e47a8",
+      "expected": "2022d61007ffffff00000000",
+      "actual": "2022d61007ffffff00000000",
+      "ok": true
+    },
+    {
+      "label": "type5 extra-table pointer",
+      "va": "0x201febe4",
+      "file_offset": "0x1b3de4",
+      "expected": "d2c0202382e2fd38",
+      "actual": "d2c0202382e2fd38",
+      "ok": true
+    },
+    {
+      "label": "confirm prologue push lr",
+      "va": "0x202871d8",
+      "file_offset": "0x23c3d8",
+      "expected": "2e7ff000",
+      "actual": "2e7ff000",
+      "ok": true
+    },
+    {
+      "label": "live commit seth, left unchanged",
+      "va": "0x202bb968",
+      "file_offset": "0x270b68",
+      "expected": "dbc02022",
+      "actual": "dbc02022",
+      "ok": true
+    },
+    {
+      "label": "fn2 seth, left unchanged",
+      "va": "0x202be24c",
+      "file_offset": "0x27344c",
+      "expected": "d0c02026",
+      "actual": "d0c02026",
+      "ok": true
+    },
+    {
+      "label": "layer action stores r8 to part byte",
+      "va": "0x201c0ce0",
+      "file_offset": "0x175ee0",
+      "expected": "280af000",
+      "actual": "280af000",
+      "ok": true
+    },
+    {
+      "label": "0x201c06f4 clears part byte to 0",
+      "va": "0x201c07d4",
+      "file_offset": "0x1759d4",
+      "expected": "60002001",
+      "actual": "60002001",
+      "ok": true
+    },
+    {
+      "label": "push increments part2 count",
+      "va": "0x201c0890",
+      "file_offset": "0x175a90",
+      "expected": "40012001",
+      "actual": "40012001",
+      "ok": true
+    },
+    {
+      "label": "list painter entry",
+      "va": "0x201fd360",
+      "file_offset": "0x1b2560",
+      "expected": "4fe0287f",
+      "actual": "4fe0287f",
+      "ok": true
+    },
+    {
+      "label": "tag33 calls painter",
+      "va": "0x201fff38",
+      "file_offset": "0x1b5138",
+      "expected": "80e0d360",
+      "actual": "80e0d360",
+      "ok": true
+    },
+    {
+      "label": "jump table activity 8 halfword",
+      "va": "0x20377434",
+      "file_offset": "0x32c634",
+      "table_hex": "00fc0118007002bc01540000001c0038005402bc00e0008c00a800c401bc01d802bc0250026c02bc028802a4",
+      "index7_halfword": "0x38",
+      "ok": true
+    },
+    {
+      "label": "official payload hole and probe tail",
+      "payload_va": "0x2005276c",
+      "payload_file": "0x796c",
+      "payload_8000_is_ff": true,
+      "tail_file": "0x9900",
+      "tail_is_ff": true
+    },
+    {
+      "label": "official phase0 checksum",
+      "stored": "0x6acdb212",
+      "calculated": "0x6acdb212",
+      "ok": true
+    }
+  ],
+  "painter_immediate_hits": {
+    "part_205a280f": [],
+    "activity_205d9bf8": [],
+    "activity_via_205e": [],
+    "settings_200c0dac": [],
+    "preview_202d6f38": [],
+    "rpc8_2009005c": [],
+    "reenter_init_20287080": []
+  },
+  "all_ok": true
+}

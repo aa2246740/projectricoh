@@ -1,0 +1,374 @@
+{
+  "format_version": 1,
+  "generation": 1,
+  "recipes": [
+    {
+      "slot": 1,
+      "name": "01 GR Positive Film",
+      "parameters": {
+        "contrast": 3,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 2,
+      "name": "02 GR Negative Film",
+      "parameters": {
+        "contrast": 3,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 3,
+      "name": "03 GR Hi-Contrast B&W",
+      "parameters": {
+        "contrast": 9,
+        "sharpness": 6,
+        "vividness": 1,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 4,
+      "name": "04 GR Standard",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 5,
+      "name": "05 GR Bleach Bypass",
+      "parameters": {
+        "contrast": 8,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 6,
+      "name": "06 GR Soft B&W",
+      "parameters": {
+        "contrast": 1,
+        "sharpness": 4,
+        "vividness": 1,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 7,
+      "name": "07 GR Warm Sepia TE",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 1,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 8,
+      "name": "08 GR Cool B&W TE",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 1,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 9,
+      "name": "09 GR Cross Process",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 10,
+      "name": "10 GR Vivid",
+      "parameters": {
+        "contrast": 6,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 11,
+      "name": "11 GR Natural",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 12,
+      "name": "12 GR B&W",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 1,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 13,
+      "name": "13 GR Cross Magenta",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 14,
+      "name": "14 GR Cross Yellow",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 15,
+      "name": "15 GR Red TE",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 1,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 16,
+      "name": "16 GR Green TE",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 1,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    }
+  ]
+}

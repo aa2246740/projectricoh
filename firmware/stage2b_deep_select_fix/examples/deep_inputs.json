@@ -1,0 +1,321 @@
+{
+  "format_version": 2,
+  "generation": 1,
+  "recipes": [
+    {
+      "slot": 1,
+      "name": "01 Posi",
+      "base_mode": "color",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 2,
+      "name": "02 Nega",
+      "base_mode": "color",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 3,
+      "name": "03 HC BW",
+      "base_mode": "bw",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 6
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 4,
+      "name": "04 Std",
+      "base_mode": "color",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 5,
+      "name": "05 Blch",
+      "base_mode": "color",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 6,
+      "name": "06 SftBW",
+      "base_mode": "bw",
+      "parameters": {
+        "contrast": 1,
+        "sharpness": 4
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 7,
+      "name": "07 Sepia",
+      "base_mode": "bw_te",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "toning_color": "sepia"
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 8,
+      "name": "08 ClBW",
+      "base_mode": "bw_te",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "toning_color": "blue"
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 9,
+      "name": "09 Cross",
+      "base_mode": "color",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 10,
+      "name": "10 Vivid",
+      "base_mode": "color",
+      "parameters": {
+        "contrast": 6,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 11,
+      "name": "11 Natur",
+      "base_mode": "color",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 12,
+      "name": "12 B&W",
+      "base_mode": "bw",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 13,
+      "name": "13 XMag",
+      "base_mode": "color",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 14,
+      "name": "14 XYel",
+      "base_mode": "color",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 15,
+      "name": "15 RedTE",
+      "base_mode": "bw_te",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "toning_color": "red"
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 16,
+      "name": "16 GrnTE",
+      "base_mode": "bw_te",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "toning_color": "green"
+      },
+      "wb": [
+        0,
+        0
+      ]
+    }
+  ]
+}

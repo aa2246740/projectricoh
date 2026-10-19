@@ -1,0 +1,55 @@
+{
+  "schema": "gxr-code-experiment-approval-v1",
+  "mode": "experimental",
+  "authorization": "User requested stage 1a probe in this exact candidate and these two playback formatter paths; no SD/card operation authorized",
+  "official_ilaunch3_sha256": "da1980e9d6f3996ede4953b8311cf0ce2abeb4bb300b6ee60a38f38e29a3cdf7",
+  "static_audit": {
+    "path": "research/stage1a_probe/evidence/static-audit.json",
+    "sha256": "6d72f938cfa8a82649492461c8b29f07990ee15123850ff7d3f26957ce1a3741"
+  },
+  "code_ranges": [
+    {
+      "va_start": "0x2005276C",
+      "va_end": "0x20054800",
+      "file_start": "0x796C",
+      "file_end": "0x9A00",
+      "original_sha256": "fb199ca9e7d6ad1ccb42787811b933a0084132b9224a376e4fd357719030153f"
+    }
+  ],
+  "hooks": [
+    {
+      "va": "0x20319C7C",
+      "file_offset": "0x2CEE7C",
+      "instruction_length": 4,
+      "expected": "1e c0 f0 00",
+      "original_target": "0x200BBC7C",
+      "return_va": "0x20319C80",
+      "return_expected": "4f 08 f0 00",
+      "context_va": "0x20319C5C",
+      "context_expected": "20 7f f0 00 d0 c0 20 37 80 e0 bb 84 20 7f f0 00 d4 c0 20 23 d0 c0 20 0b 84 e4 4b d0 80 e0 bc 7c",
+      "arguments": {
+        "r4": "0x20234BD0 output buffer",
+        "r5..r7": "unchanged",
+        "stack+0": "original ISO %d format",
+        "stack+4": "ISO integer"
+      }
+    },
+    {
+      "va": "0x20318464",
+      "file_offset": "0x2CD664",
+      "instruction_length": 4,
+      "expected": "1e c0 f0 00",
+      "original_target": "0x200BBC7C",
+      "return_va": "0x20318468",
+      "return_expected": "4f 08 f0 00",
+      "context_va": "0x20318444",
+      "context_expected": "20 7f f0 00 d0 c0 20 37 80 e0 bb 6e 20 7f f0 00 d4 c0 20 23 d0 c0 20 0b 84 e4 4b d0 80 e0 bc 7c",
+      "arguments": {
+        "r4": "0x20234BD0 output buffer",
+        "r5..r7": "unchanged",
+        "stack+0": "original ISO %d format",
+        "stack+4": "ISO integer"
+      }
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "generation": 1,
+  "recipes": [
+    {
+      "slot": 1,
+      "name": "Amber Print",
+      "parameters": {
+        "contrast": 6, "sharpness": 3, "vividness": 5,
+        "orange_saturation": 7, "green_saturation": 3, "blue_saturation": 3,
+        "red_saturation": 6, "magenta_saturation": 4,
+        "orange_hue": 6, "green_hue": 5, "blue_hue": 4,
+        "red_hue": 5, "magenta_hue": 5
+      },
+      "wb": [2, -3]
+    },
+    {
+      "slot": 2,
+      "name": "Cool Chrome",
+      "parameters": {
+        "contrast": 8, "sharpness": 6, "vividness": 4,
+        "orange_saturation": 4, "green_saturation": 5, "blue_saturation": 8,
+        "red_saturation": 4, "magenta_saturation": 3,
+        "orange_hue": 4, "green_hue": 6, "blue_hue": 6,
+        "red_hue": 4, "magenta_hue": 6
+      },
+      "wb": [-2, 4]
+    },
+    {
+      "slot": 3,
+      "name": "Soft Pastel",
+      "parameters": {
+        "contrast": 2, "sharpness": 2, "vividness": 3,
+        "orange_saturation": 4, "green_saturation": 3, "blue_saturation": 4,
+        "red_saturation": 3, "magenta_saturation": 4,
+        "orange_hue": 5, "green_hue": 5, "blue_hue": 5,
+        "red_hue": 5, "magenta_hue": 5
+      },
+      "wb": [1, -1]
+    },
+    {
+      "slot": 16,
+      "name": "Deep Forest",
+      "parameters": {
+        "contrast": 7, "sharpness": 5, "vividness": 7,
+        "orange_saturation": 3, "green_saturation": 9, "blue_saturation": 6,
+        "red_saturation": 3, "magenta_saturation": 2,
+        "orange_hue": 5, "green_hue": 3, "blue_hue": 4,
+        "red_hue": 6, "magenta_hue": 5
+      },
+      "wb": [-3, 1]
+    }
+  ]
+}

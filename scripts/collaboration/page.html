@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GXR A12 50mm 协作流程</title>
+<style>
+html, body { background: transparent; }
+body { margin: 0; color: var(--foreground); font-family: var(--font-sans, system-ui, sans-serif); }
+#gxr-collaboration { --font-size-base: 14px; font-size: var(--font-size-base); line-height: 1.55; }
+#gxr-collaboration * { box-sizing: border-box; }
+#gxr-collaboration h1, #gxr-collaboration h2, #gxr-collaboration h3, #gxr-collaboration p { margin: 0; }
+#gxr-collaboration h1 { font-size: calc(var(--font-size-base) * 1.25); font-weight: 500; }
+#gxr-collaboration h2, #gxr-collaboration h3 { font-size: var(--font-size-base); font-weight: 500; }
+#gxr-collaboration .muted { color: var(--muted-foreground); }
+#gxr-collaboration .small { font-size: calc(var(--font-size-base) * .86); }
+#gxr-collaboration .intro { display: grid; gap: 6px; padding-right: 92px; }
+#gxr-collaboration .current { font-weight: 500; }
+#gxr-collaboration .stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 18px 0 8px; }
+#gxr-collaboration button { color: var(--foreground); background: transparent; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; text-align: left; font: inherit; min-height: 66px; }
+#gxr-collaboration button:hover { background: var(--secondary); color: var(--secondary-foreground); }
+#gxr-collaboration button[aria-selected="true"] { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+#gxr-collaboration .stage-name { display: block; font-weight: 500; }
+#gxr-collaboration .stage-status { display: block; font-size: calc(var(--font-size-base) * .86); }
+#gxr-collaboration .stage-head { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; margin: 18px 0 10px; }
+#gxr-collaboration .columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 22px; }
+#gxr-collaboration ul, #gxr-collaboration ol { margin: 6px 0 0; padding-left: 20px; }
+#gxr-collaboration li { padding-left: 2px; margin-bottom: 5px; overflow-wrap: anywhere; }
+#gxr-collaboration .handoff { margin-top: 14px; display: grid; gap: 6px; }
+#gxr-collaboration .handoff p { overflow-wrap: anywhere; }
+#gxr-collaboration hr { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
+#gxr-collaboration .inventory { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; }
+#gxr-collaboration .inventory h2 { margin-bottom: 4px; }
+#gxr-collaboration details { border-bottom: 1px solid var(--border); padding: 3px 0; }
+#gxr-collaboration summary { font-weight: 500; min-height: 44px; padding: 8px 0; }
+#gxr-collaboration details[open] { padding-bottom: 14px; }
+#gxr-collaboration .sources { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 16px; }
+#gxr-collaboration a { color: var(--foreground); text-underline-offset: 3px; }
+#gxr-collaboration .sources a { font-size: calc(var(--font-size-base) * .86); }
+@media (max-width: 520px) {
+  #gxr-collaboration .intro { padding-right: 0; }
+  #gxr-collaboration .stages { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #gxr-collaboration .columns, #gxr-collaboration .inventory { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+}
+</style>
+</head>
+<body>
+<main id="gxr-collaboration">
+  <div class="intro">
+    <h1>我做开发，你操作相机，我们用文件和照片交接。</h1>
+    <p id="goal"></p>
+    <p class="current" id="current"></p>
+    <p class="muted small">范围：GXR 机身＋A12 50mm · 状态核对于 2026-10-12</p>
+  </div>
+
+  <nav class="stages" role="tablist" aria-label="协作阶段" id="stages"></nav>
+  <p class="muted small">按顺序推进；点步骤查看分工，不会执行相机操作。</p>
+
+  <section id="stage-panel" role="tabpanel" aria-live="polite">
+    <div class="stage-head"><h2 id="stage-title"></h2><span class="muted small" id="stage-status"></span></div>
+    <div class="columns">
+      <div><h3>我负责</h3><ul id="my-tasks"></ul></div>
+      <div><h3>你配合</h3><ol id="your-tasks"></ol></div>
+    </div>
+    <div class="handoff">
+      <p><span class="muted">本阶段交付：</span><span id="deliver"></span></p>
+      <p><span class="muted">进入下一阶段：</span><span id="next"></span></p>
+    </div>
+  </section>
+
+  <hr>
+  <div class="inventory">
+    <section><h2>已完成 · 电脑验证</h2><ul id="done"></ul></section>
+    <section><h2>还没完成 · 相机功能</h2><ul id="pending"></ul></section>
+  </div>
+  <hr>
+  <details><summary>带相机时，完整准备清单</summary><ul id="gear"></ul></details>
+  <details><summary>第一轮取样，完整交接清单</summary><ul id="handoff-list"></ul></details>
+  <details><summary>后续可能逐项采集的 13 个颜色字段</summary><p class="muted small">先分析四份样本，再决定是否覆盖 Setting 1 与 Setting 2 的 13＋13 项。</p><ul id="fields"></ul></details>
+  <div class="sources" id="sources" aria-label="原厂资料"></div>
+</main>
+<script type="application/json" id="collaboration-data">__PLAN_JSON__</script>
+<script>
+(() => {
+  const root = document.getElementById('gxr-collaboration');
+  const plan = JSON.parse(document.getElementById('collaboration-data').textContent);
+  const el = id => root.querySelector('#' + id);
+  const fill = (id, values) => {
+    el(id).replaceChildren(...values.map(value => {
+      const item = document.createElement('li');
+      item.textContent = value;
+      return item;
+    }));
+  };
+  el('goal').textContent = '目标：' + plan.goal + '。';
+  el('current').textContent = plan.current_note;
+  ['done', 'pending', 'gear', 'fields'].forEach(id => fill(id, plan[id]));
+  fill('handoff-list', plan.handoff);
+  plan.sources.forEach(source => {
+    const link = document.createElement('a');
+    link.href = source.url;
+    link.textContent = source.label;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    el('sources').append(link);
+  });
+  const buttons = plan.stages.map((stage, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.role = 'tab';
+    button.id = 'stage-' + stage.id;
+    button.dataset.stage = stage.id;
+    button.setAttribute('aria-controls', 'stage-panel');
+    const title = document.createElement('span');
+    title.className = 'stage-name';
+    title.textContent = (index + 1) + '. ' + stage.title;
+    const status = document.createElement('span');
+    status.className = 'stage-status';
+    status.textContent = stage.status;
+    button.append(title, status);
+    button.addEventListener('click', () => select(stage.id));
+    button.addEventListener('keydown', event => {
+      let next;
+      if (event.key === 'ArrowRight') next = (index + 1) % buttons.length;
+      if (event.key === 'ArrowLeft') next = (index + buttons.length - 1) % buttons.length;
+      if (event.key === 'Home') next = 0;
+      if (event.key === 'End') next = buttons.length - 1;
+      if (next !== undefined) {
+        event.preventDefault();
+        buttons[next].focus();
+        select(plan.stages[next].id);
+      }
+    });
+    el('stages').append(button);
+    return button;
+  });
+  function select(id) {
+    const stage = plan.stages.find(value => value.id === id);
+    buttons.forEach(button => button.setAttribute('aria-selected', String(button.dataset.stage === id)));
+    el('stage-panel').setAttribute('aria-labelledby', 'stage-' + id);
+    el('stage-title').textContent = stage.title;
+    el('stage-status').textContent = stage.status;
+    fill('my-tasks', stage.me);
+    fill('your-tasks', stage.you);
+    el('deliver').textContent = stage.deliver.join(' ');
+    el('next').textContent = stage.next;
+  }
+  select(plan.current_stage);
+})();
+</script>
+</body>
+</html>

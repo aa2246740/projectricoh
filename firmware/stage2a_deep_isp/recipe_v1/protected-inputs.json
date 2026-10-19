@@ -1,0 +1,13 @@
+{
+  "firmware/recipe_core/README.md": "b02dd441430e4472c0b5a9b9535eb46e2790581b0d4eb8e38f95c9578cca136a",
+  "firmware/recipe_core/recipe_core.c": "a728036dbbcc71f8d6367607b764a267ed23e979b3b73b38477f9ee448c9955f",
+  "firmware/recipe_core/recipe_core.h": "a7d99fb11425af8c477ed5ab5f873e149af5af6b9f28a1406abac43f07fad172",
+  "firmware/recipe_core/recipe_storage.h": "3a7eacfc7df1307aef3fc55b13d633e394cc19d998a9e756f68a1f6d3ec095ce",
+  "firmware/recipe_core/run_tests.sh": "7c65234acc8415ae93d6d78ecf75bc1caa13cfe4ecfae7faa3b202e0db4c1092",
+  "firmware/recipe_core/tests/host_file_store.c": "420c1b18626f2c638db22f70e36ee9b8470c419b1e4f1ca590d1d19a848643dd",
+  "firmware/recipe_core/tests/host_file_store.h": "d049a62fa283665825649553fe0380abb412800beac3a4e3ae7b44e25d98881a",
+  "firmware/recipe_core/tests/test_recipe_core.c": "1f71c7bf284cc59fe507aeb841896974f03c9b0d8ffeea447cd7edf1456f8632",
+  "firmware/recipe_core/verify.py": "cba9abe0c7c2b1577f53959637f781cda26fae3281efc080871aea267222ba15",
+  "captures/a12-50/2026-10-13/A0-baseline/MYSET01.IFO": "924591d39ec2f34329bade00efba4783692efdab4cf48844e11586599f3d0431",
+  "artifacts/firmware/gxr-1.51/ilaunch3": "da1980e9d6f3996ede4953b8311cf0ce2abeb4bb300b6ee60a38f38e29a3cdf7"
+}

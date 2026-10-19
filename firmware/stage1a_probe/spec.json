@@ -1,0 +1,54 @@
+{
+  "schema": "gxr-code-patch-spec-v1",
+  "name": "stage1a-probe-ok-ng",
+  "mode": "experimental",
+  "approval": {
+    "path": "firmware/stage1a_probe/approval.json",
+    "sha256": "dbd99d3de212828617082d9e595a24383b66befe3ec2eddbfeb6dc0a62b4d711"
+  },
+  "elf": {
+    "path": "firmware/stage1a_probe/build/probe.elf",
+    "sha256": "cbf94818f3eca4a68f11b5bcdb201a75d8622433892743438bbaf94b7833e383"
+  },
+  "payload": {
+    "path": "firmware/stage1a_probe/build/probe.bin",
+    "sha256": "3b3e2657d2c19fd6109e911a1fb716cbf107e7675bcae46fc6117b994d68a8fa"
+  },
+  "map": {
+    "path": "firmware/stage1a_probe/build/probe.map",
+    "sha256": "59ef8083270e50ec3144fceaa16e3003413f75cb417e2a353ef3419ba3ec6cc1"
+  },
+  "entry_symbol": "probe_entry",
+  "abi": "ricoh-leaf-vararg-tail-r4-stack",
+  "branch_assertions": [
+    {
+      "va": "0x200547C8",
+      "kind": "BNE16",
+      "target_symbol": "probe_ng"
+    },
+    {
+      "va": "0x200547CE",
+      "kind": "BC8",
+      "target_symbol": "probe_loop"
+    },
+    {
+      "va": "0x200547D8",
+      "kind": "BRA8",
+      "target_symbol": "probe_format"
+    }
+  ],
+  "hooks": [
+    {
+      "name": "playback-ISO-normal",
+      "va": "0x20319C7C",
+      "kind": "JL_NOP_TO_BL24",
+      "target_symbol": "probe_entry"
+    },
+    {
+      "name": "playback-ISO-alternate",
+      "va": "0x20318464",
+      "kind": "JL_NOP_TO_BL24",
+      "target_symbol": "probe_entry"
+    }
+  ]
+}
