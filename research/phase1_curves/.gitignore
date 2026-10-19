@@ -1,0 +1,5 @@
+local/
+# Contain values copied from Ricoh firmware tables (row-5 knots) or full curve dumps: keep local only.
+curves.json
+results.json
+REPORT.md
