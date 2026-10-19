@@ -1,0 +1,4 @@
+local/
+__pycache__/
+# Contains colour words derived from Ricoh firmware rows: keep local.
+measurements.json
