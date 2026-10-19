@@ -20,15 +20,15 @@ Ricoh GXR（机身 + A12 50mm，固件 1.51）做成类似现代 GR 的用法：
 
 ## 正在进行
 
-- 读数探针 R2（多显示 `K`、`M`、`N` 三行），说明见 `research/gate_probe/R2_BRIEF.md`。
-- 已派给 Opus 5.5 high 构建，子线程标题“读数探针 R2：多显示三个状态值”。产出在 `firmware/gate_probe_r2/`、`artifacts/gate-probe-packages/gate-probe-r2/`、`research/gate_probe/R2_BUILD_REPORT.md`。
-- R2 还没写卡，也没上机。
+- R2（`K/M/N` 放在第 10..12 行）已构建完成，但一屏只显示 9 行，开页看不到这三行。滚动会不会触发图像模式写入未核实，所以 R2 **不上机**。
+- 已让同一个 Opus 5.5 high 子线程（标题“读数探针 R2：多显示三个状态值”）改做 **R3**：第一屏 9 行依次为 `K M N A T P C V G0`，去掉已确认的 `W`、`E`，其余与 R1/R2 相同。产出在 `firmware/gate_probe_r3/`、`artifacts/gate-probe-packages/gate-probe-r3/`、`research/gate_probe/R3_BUILD_REPORT.md`。
+- R3 还没写卡，也没上机。
 
 ## 接手后的步骤
 
-1. 等 R2 完成，然后自己逐字节核对：和官方、和 R1 的差异区间；反汇编确认运行期只写自己的显示缓冲和重入字节；校验和。方法可参考 `research/gate_probe/BUILD_REPORT.md` 和 `decisions.tsv` 里的 `gate_probe_root_verified` 一行。
+1. 等 R3 完成，然后自己逐字节核对：和官方、和 R1 的差异区间；反汇编确认运行期只写自己的显示缓冲和重入字节；校验和。方法可参考 `research/gate_probe/BUILD_REPORT.md` 和 `decisions.tsv` 里的 `gate_probe_root_verified` 一行。
 2. 写卡：卡名 `RICOHDCX`，UUID `0F824AED…`。先只读确认，备份卡上的 `ilaunch3`，用 `cp -X` 只替换 `ilaunch3`，按包里的清单核对 29 个文件，删除 `._*`，然后弹出。
-3. 一次性告诉用户要做什么：升级，开机，按 ADJ 进 Image Settings，拍下全部读数（包括 `K/M/N`），关机。在那一页不要按 OK、Fn2，不要拨 ADJ 拨盘。
+3. 一次性告诉用户要做什么：升级，开机，按 ADJ 进 Image Settings，拍下第一屏 9 行读数（重点看 `K`），关机。在那一页不要按 OK、Fn2，不要拨 ADJ 拨盘。
 4. 如果 `K` 不是 0，基本坐实头号嫌疑。修法是以 Stage 2b 为基础，让配方写入不再依赖这个值，同时保留其余条件。修好后同样先核对，再写卡上机。
 
 ## 用户的工作约定
