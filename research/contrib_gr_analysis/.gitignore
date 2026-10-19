@@ -1,0 +1,4 @@
+# Measurements derived from contributors' photos stay local.
+*.json
+*.csv
+REPORT.md
