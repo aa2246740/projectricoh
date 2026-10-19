@@ -8,7 +8,7 @@ Ricoh GXR（机身 + A12 50mm，固件 1.51）做成类似现代 GR 的用法：
 
 ## 相机现在的状态
 
-- 相机里是读数探针 R1，`ilaunch3` sha256 前缀 `94c797cb`。可以正常拍照。Image Settings 页显示的是读数，不是模式名。
+- 卡上是读数探针 R3，`ilaunch3` sha256 前缀 `728d3c02`（2026-10-19 写卡，旧的 R1 已备份到 `artifacts/gate-probe-packages/card-backup-before-r3-20261019T024031Z/`）。用户刷机后，相机里也是 R3；刷之前还是 R1。Image Settings 页显示的是读数，不是模式名。
 - 恢复官方 1.51：用 `artifacts/gate-probe-packages/gate-probe-r1/recovery-official-1.51/SD_ROOT/` 的 `ilaunch3` 覆盖卡上的同名文件，然后在相机里升级。这条路在这台相机上验证过。
 
 ## 已经确认的事实
@@ -22,7 +22,7 @@ Ricoh GXR（机身 + A12 50mm，固件 1.51）做成类似现代 GR 的用法：
 
 - R2（`K/M/N` 放在第 10..12 行）已构建完成，但一屏只显示 9 行，开页看不到这三行。滚动会不会触发图像模式写入未核实，所以 R2 **不上机**。
 - 已让同一个 Opus 5.5 high 子线程（标题“读数探针 R2：多显示三个状态值”）改做 **R3**：第一屏 9 行依次为 `K M N A T P C V G0`，去掉已确认的 `W`、`E`，其余与 R1/R2 相同。产出在 `firmware/gate_probe_r3/`、`artifacts/gate-probe-packages/gate-probe-r3/`、`research/gate_probe/R3_BUILD_REPORT.md`。
-- R3 还没写卡，也没上机。
+- R3 已核对并写卡（`decisions.tsv` 的 `gate_probe_r3_root_verified`、`gate_probe_r3_card_written`），等用户刷机后在常用拨盘挡位拍第一屏，重点看 `K`。
 
 ## 接手后的步骤
 
@@ -39,3 +39,10 @@ Ricoh GXR（机身 + A12 50mm，固件 1.51）做成类似现代 GR 的用法：
 - worker 优先用 grok-4.7-build-fast，也可用 Opus 5.5 high。不用 codex，额度快用完了。
 - SD 卡挂载时先只读确认，再写。
 - 给 worker 的任务说明尽量写成短指令，把技术细节放进仓库里的说明文档，让 worker 自己去读。长段技术说明多次被安全分类器误拦；被拦的内容不能换个说法重发。
+
+## 公开仓与本地数据
+
+- GitHub 仓库公开发布。从理光官方固件提取的曲线和颜色表**只留在本地**，不进 Git：两份 `firmware/*/deep_tables.c` 已加进 `.gitignore`，并从历史中移除；`decisions.tsv` 里的具体矩阵数值也已删除，只保留结论。
+- 本地开发和构建不受影响：`deep_tables.c` 仍在工作区。换机器或新 checkout 时，先下载官方固件，再运行 `firmware/stage2b_deep_select_fix/tools/generate_deep_tables.py` 重新生成。它读的是 `research/` 下的本地数据，这些同样不提交。
+- 提交统一使用 GitHub 隐私邮箱 `10174279+aa2246740@users.noreply.github.com`（本仓库 `git config user.email` 已设置）。
+- 不要提交：原厂固件文件、反汇编、`research/` 下带原始字节的证据、`artifacts/`、`captures/`。

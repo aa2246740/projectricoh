@@ -36,3 +36,7 @@ __pycache__/
 *.hook.bin
 /firmware/**/ilaunch3
 /firmware/**/*.DAT
+
+# Tables extracted from official Ricoh firmware: keep local only, never publish.
+# Regenerate with tools/generate_deep_tables.py from your own official firmware download.
+/firmware/**/deep_tables.c
