@@ -1,0 +1,45 @@
+{
+  "schema": "stage2d-phase1-tables-v1",
+  "deep_slots": [
+    1,
+    2,
+    3
+  ],
+  "colour_policy": "every profile writes stock colour row 1",
+  "hc_tone": "GXR native row 20",
+  "hc_last_input_adjusted": {
+    "native": 4095,
+    "stored": 4094,
+    "reason": "stored inputs must be inside 1..4094; 0 and 4095 are the implicit endpoints"
+  },
+  "monotonic": true,
+  "jlaunch3_sha256": "951be1c659c85af58ae3e4ce98707c52f0b4514fc2075256854d59f822671673",
+  "curves_json_sha256": "65cf143eef6d0216976325a42095aa5bfdad0d07df7605ac0725963e810a5648",
+  "table_sha256": {
+    "stock.a5": "253f03ed0209535e6d47748a61c005450022386fc293458804310c2d8187c65a",
+    "stock.b5": "cbbe910040f3bf6dc17fea52218de27c287109050d9f2ec16257cb133b4797ff",
+    "stock.colour": "c32d6d0309e9e79791773f2a8a98134129c06729acfed4ff52777d0a932584a3",
+    "01 Posi.a5": "aab293f37fae80c43601304073d302e6381c7f54779315690bdd277a90bb2a87",
+    "01 Posi.b5": "87b807d478f565dcab3163fa21d0622052911810549e8719d2a7cdda754c6a60",
+    "01 Posi.colour": "c32d6d0309e9e79791773f2a8a98134129c06729acfed4ff52777d0a932584a3",
+    "02 Nega.a5": "253f03ed0209535e6d47748a61c005450022386fc293458804310c2d8187c65a",
+    "02 Nega.b5": "0da47ebe3e3bc252b91ef51e42c1275b1ba18ed008a98e081c46916ad8e5f59a",
+    "02 Nega.colour": "c32d6d0309e9e79791773f2a8a98134129c06729acfed4ff52777d0a932584a3",
+    "03 HC BW.a5": "128f0e4122385ed686f718de5d3d0316781a758ef464265fb2a14812d3a0e509",
+    "03 HC BW.b5": "dd589d5c9306f26576a3c3932bad76742cf708e16349c71613da94fbb9df5afc",
+    "03 HC BW.colour": "c32d6d0309e9e79791773f2a8a98134129c06729acfed4ff52777d0a932584a3"
+  },
+  "dat_sha256": {
+    "DEEPISP0.DAT": "194e74b94fb081893e442484bf1532cf8daae31434fafb36d7d9d04645c8528d",
+    "DEEPISP1.DAT": "194e74b94fb081893e442484bf1532cf8daae31434fafb36d7d9d04645c8528d",
+    "RECIPE20.DAT": "194e74b94fb081893e442484bf1532cf8daae31434fafb36d7d9d04645c8528d",
+    "RECIPE21.DAT": "194e74b94fb081893e442484bf1532cf8daae31434fafb36d7d9d04645c8528d",
+    "RECIPES0.DAT": "0760bb08b4d78e3ceed7eb5d3cd0da60d23cf232c54034601a64fd5fc43b2377"
+  },
+  "names": [
+    "01 Posi",
+    "02 Nega",
+    "03 HC BW",
+    "04 Std"
+  ]
+}

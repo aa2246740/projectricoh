@@ -1,0 +1,373 @@
+{
+  "generation": 1,
+  "recipes": [
+    {
+      "slot": 1,
+      "name": "01 Neutral",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 2,
+      "name": "02 Low Contrast",
+      "parameters": {
+        "contrast": 2,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 3,
+      "name": "03 High Contrast",
+      "parameters": {
+        "contrast": 8,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 4,
+      "name": "04 Soft Detail",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 2,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 5,
+      "name": "05 Crisp Detail",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 8,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 6,
+      "name": "06 Muted Color",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 2,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 7,
+      "name": "07 Rich Color",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 8,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 8,
+      "name": "08 Orange Plus",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 8,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 9,
+      "name": "09 Green Plus",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 8,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 10,
+      "name": "10 Blue Plus",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 8,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 11,
+      "name": "11 Red Plus",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 8,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 12,
+      "name": "12 Magenta Plus",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 8,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 13,
+      "name": "13 WB Axis0 Plus",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        2,
+        0
+      ]
+    },
+    {
+      "slot": 14,
+      "name": "14 WB Axis0 Minus",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        -2,
+        0
+      ]
+    },
+    {
+      "slot": 15,
+      "name": "15 WB Axis1 Plus",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        2
+      ]
+    },
+    {
+      "slot": 16,
+      "name": "16 WB Axis1 Minus",
+      "parameters": {
+        "contrast": 5,
+        "sharpness": 5,
+        "vividness": 5,
+        "orange_saturation": 5,
+        "green_saturation": 5,
+        "blue_saturation": 5,
+        "red_saturation": 5,
+        "magenta_saturation": 5,
+        "orange_hue": 5,
+        "green_hue": 5,
+        "blue_hue": 5,
+        "red_hue": 5,
+        "magenta_hue": 5
+      },
+      "wb": [
+        0,
+        -2
+      ]
+    }
+  ]
+}
