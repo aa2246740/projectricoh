@@ -1,0 +1,4 @@
+可以交复审
+Generation 124 UI framework. Authoritative DAT: firmware/package_v36_g124/SD_ROOT/GXRCE.DAT
+SHA256 ebf07faa3c5b8dcec411da7f7217fb58488adafb942045999bd2cdf7ce98f803
+See research/g124_ui_v2/REPORT.md. Inherited older scripts are not the gen 124 acceptance entrypoints.

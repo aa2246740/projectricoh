@@ -1,0 +1,250 @@
+"""Generate the dense-ramp report and static, labelled measurement figures."""
+import os
+import sys
+from pathlib import Path
+for name in ('OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','VECLIB_MAXIMUM_THREADS'):
+    os.environ[name]='1'
+sys.dont_write_bytecode=True
+HERE=Path(__file__).resolve().parent
+OUT=HERE/'local/ramp_field_20261103'
+import json
+import csv
+import fcntl
+import hashlib
+import numpy as np
+from PIL import Image,ImageDraw,ImageFont
+lock=os.open(OUT/'serial.lock',os.O_RDWR);fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+
+
+def read(name):return json.loads((OUT/name).read_text())
+def num(x,d=3):return f'{float(x):.{d}f}'
+def vec(x,d=3):return ' / '.join(num(v,d) for v in x)
+def rng(x,d=1):return '–'.join(num(v,d) for v in x)
+
+
+FONT='/System/Library/Fonts/Supplemental/Arial.ttf'
+small=ImageFont.truetype(FONT,17);font=ImageFont.truetype(FONT,21);title=ImageFont.truetype(FONT,27)
+
+
+def axes(draw,box,xlim,ylim,xticks,yticks,xlabel,ylabel):
+    l,t,w,h=box
+    xp=lambda x:l+(x-xlim[0])/(xlim[1]-xlim[0])*w
+    yp=lambda y:t+h-(y-ylim[0])/(ylim[1]-ylim[0])*h
+    for y in yticks:
+        draw.line((l,yp(y),l+w,yp(y)),fill='#dddddd');draw.text((l-38,yp(y)-10),f'{y:g}',font=small,fill='#444444')
+    for x in xticks:
+        draw.line((xp(x),t,xp(x),t+h),fill='#eeeeee');draw.text((xp(x)-17,t+h+7),f'{x:g}',font=small,fill='#444444')
+    draw.rectangle((l,t,l+w,t+h),outline='#777777',width=1)
+    draw.text((l,t+h+35),xlabel,font=small,fill='black');draw.text((l,t-30),ylabel,font=font,fill='black')
+    return xp,yp
+
+
+def figures():
+    data=read('measure-0.5.json');points=data['points'];model=read('model.json');xs=np.array(model['xs']);left,peak,right=xs[15:18]
+    free=read('free_shape_sensitivity.json');fits=read('shape_fits.json')
+    im=Image.new('RGB',(1630,1080),'white');d=ImageDraw.Draw(im)
+    d.text((45,20),'MOUNT node-16 +2: dense grey response and remaining gaps',font=title,fill='black')
+    for ci,ch in enumerate('RGB'):
+        rr=[r for r in points if r['channel']==ch and r['gray'] and not r['excluded']]
+        first=min(r['index'] for r in rr)
+        for ri,response in enumerate(('q_estimate','q_y')):
+            box=(80+ci*535,110+ri*435,440,315)
+            xp,yp=axes(d,box,(450,900),(-.5,3.5),(450,550,650,750,850),(0,1,2,3),
+                'Conditioned A-model input',ch+(' : RGB projection q' if ri==0 else ' : native JPEG Y / C100 weight'))
+            xx=np.linspace(450,900,901);yy=2*np.maximum(0,np.minimum((xx-left)/(peak-left),(right-xx)/(right-peak)))
+            d.line([(xp(x),yp(y)) for x,y in zip(xx,yy)],fill='#888888',width=2)
+            row=next(r for r in free if r['fraction']=='0.5' and r['channel']==ch and r['response']==response and r['kind']=='linear')
+            yy=row['amplitude']*np.maximum(0,np.minimum((xx-row['left'])/(row['peak']-row['left']),
+                (row['right']-xx)/(row['right']-row['peak'])))+row['offset']
+            d.line([(xp(x),yp(y)) for x,y in zip(xx,yy)],fill='#769275',width=2)
+            for r in rr:
+                x,y=r['conditioned_input'],r[response]
+                if 450<=x<=900 and -.5<=y<=3.5:
+                    color='#2164a5' if r['index']==first else '#ce701e'
+                    xxp,yyp=xp(x),yp(y)
+                    if r['index']==first:d.ellipse((xxp-4,yyp-4,xxp+4,yyp+4),fill=color)
+                    else:d.rectangle((xxp-3,yyp-3,xxp+3,yyp+3),outline=color,width=2)
+    d.text((65,1010),'Blue/orange: two photos. Grey: nominal linear +2. Green: free triangular mean fit, not an accepted hardware kernel.',font=small,fill='black')
+    d.text((65,1040),'Both q estimates are conditional; the lower row avoids the chroma-sector inverse but retains quantization and the assumed C100 Y mapping.',font=small,fill='#444444')
+    im.save(OUT/'kernel-response.png')
+
+    im=Image.new('RGB',(1630,670),'white');d=ImageDraw.Draw(im)
+    d.text((45,20),'Native JPEG component differences: original model vs observed',font=title,fill='black')
+    palette={'R':'#bb4138','G':'#37854b','B':'#286baf'}
+    for ci,component in enumerate(('Y','Cb','Cr')):
+        xp,yp=axes(d,(90+ci*535,120,420,380),(-2.5,2.5),(-2.5,2.5),(-2,-1,0,1,2),(-2,-1,0,1,2),
+            'Original prediction (8-bit code)',component+' : observed change')
+        d.line((xp(-2.5),yp(-2.5),xp(2.5),yp(2.5)),fill='#888888',width=2)
+        for r in points:
+            if r['excluded'] or r['q_nominal']<=.2:continue
+            x,y=r['predicted_ycc'][ci],r['observed_ycc'][ci]
+            if not (-2.5<=x<=2.5 and -2.5<=y<=2.5):continue
+            px,py=xp(x),yp(y);col=palette[r['channel']]
+            if r['gray']:d.ellipse((px-3,py-3,px+3,py+3),outline=col,width=2)
+            else:
+                d.polygon([(px,py-7),(px-6,py+5),(px+6,py+5)],fill=col)
+                if r['patch']=='skin' and r['index']==1:d.text((px+10,py-12),'R skin',font=small,fill=col)
+    d.text((75,575),'Red/green/blue: perturbed curve. Circles: grey regions. Triangles: independent chromatic holdout regions.',font=small,fill='black')
+    d.text((75,610),'R skin Cb changes sign relative to the old model in both repeats. A single global gain cannot correct it.',font=small,fill='#444444')
+    im.save(OUT/'component-response.png')
+
+    im=Image.new('RGB',(1500,850),'white');d=ImageDraw.Draw(im)
+    d.text((45,20),'A restore pair and repeated perturbations',font=title,fill='black')
+    drift=data['drift'];xx=np.array(drift['first_raw_wb'])[:49,1]
+    xp,yp=axes(d,(90,120,1320,260),(0,2000),(-1,1),(0,400,800,1200,1600,2000),(-1,-.5,0,.5,1),
+        'A-first green RAW_WB proxy','1933 - RAW-corrected 1926, RGB JPEG code')
+    for ci,ch in enumerate('RGB'):
+        for x,y in zip(xx,np.array(drift['corrected_rgb'])[:49,ci]):
+            assert -1<=y<=1
+            d.ellipse((xp(x)-3,yp(y)-3,xp(x)+3,yp(y)+3),fill=palette[ch])
+    for ci,ch in enumerate('RGB'):
+        rr=[r for r in points if r['gray'] and r['channel']==ch];ids=sorted({r['index'] for r in rr})
+        aa={r['patch']:r for r in rr if r['index']==ids[0]};bb={r['patch']:r for r in rr if r['index']==ids[1]}
+        xp,yp=axes(d,(90+ci*480,535,370,190),(500,850),(-1.5,1.5),(500,600,700,800),(-1,0,1),
+            'Mean RAW_WB proxy',ch+' : repeat 2 - repeat 1, main JPG code')
+        for patch,a in aa.items():
+            b=bb[patch]
+            if max(a['q_nominal'],b['q_nominal'])<=.2:continue
+            x=(a['raw_input']+b['raw_input'])/2;y=b['observed_rgb'][ci]-a['observed_rgb'][ci]
+            if 500<x<850 and -1.5<y<1.5:d.ellipse((xp(x)-4,yp(y)-4,xp(x)+4,yp(y)+4),fill=palette[ch])
+    d.text((85,800),'Two repeated photos per perturbation; regions and pixels are not additional independent repeats.',font=small,fill='#444444')
+    im.save(OUT/'drift-repeatability.png')
+
+
+def aggregate():
+    rows=read('measure-0.5.json')['points'];records=[]
+    for ch in 'RGB':
+        for patch in dict.fromkeys(r['patch'] for r in rows if r['channel']==ch):
+            rr=[r for r in rows if r['channel']==ch and r['patch']==patch]
+            record=dict(channel=ch,patch=patch,n_photos=len(rr),raw_input_mean=np.mean([r['raw_input'] for r in rr]),
+                conditioned_input_mean=np.mean([r['conditioned_input'] for r in rr]),q_projection_mean=np.mean([r['q_estimate'] for r in rr]),
+                q_Y_mean=np.mean([r['q_y'] for r in rr]))
+            for prefix,key,names in [('observed','observed_rgb','RGB'),('predicted','predicted_rgb','RGB'),
+                                     ('observed','observed_ycc',['Y','Cb','Cr']),('predicted','predicted_ycc',['Y','Cb','Cr'])]:
+                for ci,name in enumerate(names):record[prefix+'_'+name]=np.mean([r[key][ci] for r in rr])
+            for ci,name in enumerate('RGB'):record['repeat2_minus_1_'+name]=rr[1]['observed_rgb'][ci]-rr[0]['observed_rgb'][ci]
+            records.append(record)
+    with (OUT/'response-table.csv').open('w',newline='') as stream:
+        writer=csv.DictWriter(stream,fieldnames=list(records[0]));writer.writeheader();writer.writerows(records)
+
+
+def report():
+    data=read('measure-0.5.json');meta=read('metadata.json');coverage=read('coverage.json')
+    envelopes=read('kernel_envelopes.json');repeats=read('repeatability.json');fit=read('shape_fits.json')
+    components=read('components.json');candidate=read('local_output_candidate.json');model=read('model.json')
+    lines=['部分可用','',
+    'MOUNT 的 R/G/B 独立三曲线控制已由本组 8 张再次确认，条目顺序全部吻合。灰阶把三路响应的两侧都补出来了；但既有定量模型仍未闭合。当前可保留分段线性插值作为工作假设，不能认定硬件已经排除其它连续插值。肤色 R 扰动的 Cb 反号、B 的幅度与重复偏差，以及条件峰位和实际 ISP 输入轴的差别，仍阻止全颜色 L1 定量验收。','',
+    '## 拍摄条件与输入','',
+    '正式组为 R8051926–R8051933，8 组 DNG＋JPG；独立复核同目录 SHA256SUMS 的 16 项。第一遍 R8051918–R8051925 也核对 16 项哈希及身份字段，只作单独参考，不进入本报告的主提取、主拟合或结论。没有用两遍的差异推断屏幕预设的因果影响。','',
+    '机主确认，今天上午、午休和密集灰阶两遍都用同一只 35mm f/2、七片式 Mandler 设计复刻版手动 M 口镜头，实际光圈全程 f/5.6。镜头标称 f/2 与拍摄光圈 f/5.6 分开记录。DNG/JPG 的光圈字段为 0，不用它反推真实光圈。正式组使用 MacBook 内建屏、摄影（P3-D65）预设，MOUNT、M 档、1/15 秒、ISO 200、日光白平衡、单张、RAW＋JPG；8 张 EXIF 一致。屏幕实际亮度和环境光未作独立测量，曝光稳定性按 RAW 实测判断。','',
+    '相机记录的选择器都是 Standard，滑杆显示均为对比 5、锐度 6、鲜艳度 5，其余滑杆也相同。它们不能识别深层探针条目。DAT 身份沿用机主记录 a30675fa，并核对本地冻结 DAT；照片本身不含 DAT 哈希。','',
+    '## 定位、取样与横轴','',
+    '逐张用角标拟合透视变换。1932 左上角标只剩部分编码，没有纳入模板拟合；右上与下方两标的可见编码共同约束变换。1933 左上也有裁切，但可见编码足够参与。其余照片使用四标。另以每张 576 个灰块边界位置作独立检查，全部色块仍在画面内，未删除这两张。','',
+    '边界偏差的中位数约为 1.25–2.50 像素，95 分位约为 3.0–5.25 像素，均按宽 1000 像素的检查图计；1932 最大。主测取色面中央 50%，并保留中央 35% 与 65% 的结果。这里的三个百分比指色面，标签带不在色面内。三个取样范围的条目判定完全相同。B 的第二次重复保留，但不按 R/G 的精度宣告验收。详见 [逐张 ROI](local/ramp_field_20261103/roi-contact.jpg) 与 [定位检查](local/ramp_field_20261103/geometry-check.json)。','',
+    'RAW 按真实裁切起点及 CFA 相位解包，全部原像素重打包一致。横轴同时保存两种定义：RAW_WB＝扣黑位的 CFA 均值除以 DNG AsShotNeutral，是独立传感器输入代理；“条件输入”则从 A 的 JPG 经既有模型反演，并按逐块 RAW 比例换算到 B。后者不是直接读取的 ISP 内部码。以下核形状拟合使用条件输入，覆盖表同时给 RAW_WB。','',
+    '每张扰动用首尾 A 按拍摄时间插值；RAW 校正按每块、每通道分别计算。Y 单独从 JPG 原生 Y 分量解码，校正只使用 C100 的亮度行；Cb/Cr 单独保存和拟合。这样 Y 不依赖色度扇区反演，但仍依赖 A 输入校正、C100 映射、JPG 量化和取整。','',
+    '## 逐张条目核对','',
+    '先按 RAW 校正后的通道特征独立判别，再对照计划。没有强制每类必须两张，也没有把计划标签当成分类输入。表中数字是 R/G/B 三个通道特征的名义模板幅度；高置信度限本轮 A/R/G/B 四种候选，不是经过外部标定的概率。','',
+    '| 照片 | 相机时间 | 响应判定 | R / G / B 特征幅度 | 计划对照 | 置信度 |',
+    '| --- | --- | --- | --- | --- | --- |']
+    planned=list('ARGBRGBA')
+    for row,md,plan in zip(data['identity'],meta,planned):
+        assert row['response_label']==plan
+        lines.append(f"| {row['frame']} | {md['dng']['time'].split()[-1]} | {'M26 A' if plan=='A' else 'M26 '+plan+'+2'} | {vec(row['feature_amplitudes'].values(),2)} | 一致 | 高 |")
+    lines += ['', 'A 型响应能与三种扰动分开，不能仅凭照片证明菜单中的文字或把它当作原生 04 身份证据。六张扰动的最佳全 RGB 模板也全部与独立特征判定一致。','',
+    '## 实际覆盖和可观测的峰顶','',
+    '主灰阶每次 49 块、每通道两张，共 98 个灰点；三个彩块另列。全部主灰点均未触发 RAW 或 JPG 饱和排除。响应带内的采样仍不均匀，屏幕灰码密集不代表 RAW 等距。','',
+    '| 通道 | 本组 RAW_WB 全范围 | 名义带内左 / 右点数，首张扰动 | 首张名义峰值两侧最近条件输入 | 首张最大带内空档 | 明显受激点的 RAW_WB 范围 |',
+    '| --- | --- | --- | --- | --- | --- |']
+    for c in coverage:lines.append(f"| {c['channel']} | {rng(c['raw_range'])} | {c['left_side_points']} / {c['right_side_points']} | {rng(c['gap_bracketing_nominal_peak'])} | {num(c['max_gap_in_support'],1)} | {rng(c['active_raw_range'])} |")
+    lines += ['', '“明显受激”这里只用名义核大于 0.2 作为固定统计门槛，全部灰点仍保留并参与较宽区间的形状比较。R 的峰值附近仍有约 77 个条件输入码的空档；上午 R 的辅助灰点补到约 664–682，却只有一个辅助区域及少量重复，不能消除跨时段幅度和量化相位问题。','',
+    '下面列每路第一张扰动中 RGB 投影最大的灰点，展示实际输出变化；它们是观测最大点，不是真实核峰位。最终 JPG 的其它分量同时改变，是矩阵和后级处理的一部分，不能要求最终 JPG 只有一个分量变化。','',
+    '| 通道 / 色块 | RAW_WB | 条件输入 | 实测 ΔR / ΔG / ΔB | 实测 ΔY / ΔCb / ΔCr | RGB 投影 q̂ |',
+    '| --- | --- | --- | --- | --- | --- |']
+    for c in coverage:
+        q=c['observed_max_projection'];lines.append(f"| {c['channel']} / {q['patch']} | {num(q['raw_input'],1)} | {num(q['conditioned_input'],1)} | {vec(q['RGB'])} | {vec(q['YCC'])} | {num(q['q'])} |")
+    lines += ['', '完整逐张 312 行见 [main-points.csv](local/ramp_field_20261103/main-points.csv)；每路每色块两张的均值和重复差见 [response-table.csv](local/ramp_field_20261103/response-table.csv)。','',
+    '## 扰动核的峰位、两侧、宽度与幅度','',
+    '在条件输入轴上，对原生 Y 反推量拟合自由三角核，得到以下中心结果。它们描述本组均值响应，不能替代硬件插值算法或参数单位。半高点包含扣除拟合背景项后的半幅位置。','',
+    '| 通道 | 拟合峰位 | 上升半高点 | 下降半高点 | 半高宽 | 峰幅，条件曲线码 |',
+    '| --- | --- | --- | --- | --- | --- |']
+    for ch in 'RGB':
+        r=next(v for v in read('free_shape_sensitivity.json') if v['fraction']=='0.5' and v['channel']==ch and v['response']=='q_y' and v['kind']=='linear')
+        lines.append('| '+ch+' | '+' | '.join(num(r[k],1) for k in ['peak','half_left','half_right','FWHM'])+' | '+num(r['amplitude'],2)+' |')
+    lines += ['', '把 ROI 35/50/65%、RGB 投影与原生 Y、自由三角与余弦核都纳入，得到下列敏感性包络。它不是置信区间，更不是实际硬件峰值的严格上下界；未覆盖的插值和 ISP 输入分布仍可扩大它。','',
+    '| 通道 | 拟合峰位包络 | 半高宽包络 | 峰幅包络 |',
+    '| --- | --- | --- | --- |']
+    for r in envelopes:lines.append(f"| {r['channel']} | {rng(r['peak_range'])} | {rng(r['FWHM_range'])} | {rng(r['amplitude_range'],2)} |")
+    lines += ['', 'R 的 RGB 投影和 Y 对峰幅、右侧下降的反推仍有分歧；G 最稳定；B 的 Y 权重较小，反推量更容易放大量化及基线误差。上表首张扰动的最大 q̂ 分别约为 1.93、1.69、2.60，不能据此把 DAT 的 +2 单位改成这些数。','',
+    '![扰动核采样与拟合](local/ramp_field_20261103/kernel-response.png)','',
+    '## 节点间如何插值','',
+    '比较名义节点上的线性三角核、平滑余弦、PCHIP 曲线差分、最近节点、左节点保持，以及假设在线性插值后 floor/round 的量化分支。每个固定形状只拟合一个幅度和一个常数背景项。拟合窗口为条件输入 450–900，区间外零点不用于稀释残差；同一扰动的一张拟合、另一张验证，再反向验证。','',
+    'A 的反演沿用了原线性基线，因此条件输入轴也含模型假设；另用独立 RAW_WB 横轴复核，见 [raw_axis_shape_fits.json](local/ramp_field_20261103/raw_axis_shape_fits.json)。下表是原生 Y 反推量的拟合 RMSE，单位为条件曲线码。RAW 分布分支把原始 CFA 直方图积分；它包含传感器噪声，不等同于 ISP 降噪后真正进入曲线的分布。另保留 4×4 空间块均值分支。','',
+    '| 通道 | 输入分布假设 | 线性 | 余弦 | PCHIP 差分 | 最近节点 | 左节点保持 |',
+    '| --- | --- | --- | --- | --- | --- | --- |']
+    for ch in 'RGB':
+        for branch in ('mean','tile_means','raw_histogram'):
+            r=next(v for v in fit if v['fraction']=='0.5' and v['channel']==ch and v['response']=='q_y' and v['branch']==branch)
+            by={v['shape']:v for v in r['fits']};name={'mean':'均值','tile_means':'16 个空间块均值','raw_histogram':'RAW 直方图'}[branch]
+            lines.append(f"| {ch} | {name} | "+' | '.join(num(by[k]['rmse']) for k in ['linear_tent','raised_cosine','pchip_difference','nearest_node','previous_node'])+' |')
+    lines += ['', '左节点保持明显不合，最近节点在本轮测试的分布假设下也持续劣于连续核。线性与其它平滑核不能唯一分开：例如 G 的均值分支偏向 PCHIP，RAW 直方图分支又偏向余弦；B 的 Y 偏向线性，RGB 投影却偏向 PCHIP。重复留出验证没有消除这项分歧。因此保留线性插值作为工作模型，不把其中一个最小残差升级为硬件算法结论。完整排名和留出结果在 [shape_fits.json](local/ramp_field_20261103/shape_fits.json)。','',
+    '8 张 JPG 的亮度和色度 DC 量化步长均为 1，对单个 8×8 块均值对应 0.125 码；还存在 IDCT 及输出取整。平坦区域的量化相位相关，不能按像素数把它当独立噪声压到零。假设曲线输出先取整时，差分相对连续值还可相差接近一个曲线码；这只是敏感性分支，实际取整位置未查明。当前不能用一次 floor/round 拟合的优劣认定 ISP 舍入顺序。','',
+    '## Y、Cb、Cr 的幅度与色度缺口','',
+    '对灰阶有效响应点分别拟合“实测分量变化 / 原模型预测”，结果如下。预测绝对值小于 0.08 码的分量不参加该列比值，避免近零分母；B 的 Y/Cb/Cr 分别有 12/19/16 个点，R 为 26 个，G 为 20 个。这些是局部输出诊断系数，不是三曲线参数的新单位。','',
+    '| 通道 | Y 系数，两次分别 | 合并 Y | 合并 Cb | 合并 Cr | 原模型 RMSE，Y / Cb / Cr |',
+    '| --- | --- | --- | --- | --- | --- |']
+    for ch in 'RGB':
+        rr=[r for r in components if r['channel']==ch];pooled=next(r for r in rr if r['frame']=='pooled');sep=[r for r in rr if r['frame']!='pooled']
+        lines.append(f"| {ch} | {vec([r['gain_Y_Cb_Cr'][0] for r in sep])} | "+' | '.join(num(v) for v in pooled['gain_Y_Cb_Cr'])+f" | {vec(pooled['original_rmse_Y_Cb_Cr'])} |")
+    lines += ['', 'R/G 灰阶 Y 幅度接近原定义，B 本组局部 Y 约高两成；三个通道的色度倍率不同。上午与午休合并的 Y 系数约为 R 0.916、G 0.978、B 0.665，本组则为约 1.063、1.022、1.211。两组亮度、色相和量化相位采样不同，不能把这些系数平均成全局修正。上午“G 最终 RGB 较强”也不能改写成 G 曲线单位统一放大。','',
+    '有色色块给出了更直接的否定例。R 扰动的肤色 Cb，两次实测约 +0.394、+0.228，原预测约 −0.745、−0.721；不做 RAW 校正时仍分别为 +0.358、+0.273，反号不由这一步校正造成。单纯增加正的 R 幅度不能纠正它。','',
+    '另试了“每通道 Y 倍率＋共用 2×2 色度微分矩阵”的灰阶局部候选。重复留出时有小幅改善，但在四个受激彩色帧×区域上，Cb RMSE 从 0.750 升到 '+num(candidate['chromatic_holdout']['fitted_ycc_rmse'][1])+ '，没有推广性。只将候选及回执保存在 [local_output_candidate.json](local/ramp_field_20261103/local_output_candidate.json)，不写进正式模型。后级色度响应、亮度/色相依赖和量化顺序仍需分开处理，不能用一个整通道倍率吸收。','',
+    '![Y Cb Cr 对比](local/ramp_field_20261103/component-response.png)','',
+    '## 重复性与 A 漂移','',
+    '以下只用名义响应大于 0.2 的成对灰区，比较两张扰动各自相对插值 A 的效应。逐张 RAW 校正已应用，但两张的剩余输入位置差仍会改变扰动效应；因此表内差值包含这部分影响。n 是成对色块数，每通道只有两张照片。','',
+    '| 配对 | n | Δ效应差 RMS，R / G / B 码 | 最大绝对差，R / G / B | Y / Cb / Cr 差 RMS |',
+    '| --- | --- | --- | --- | --- |']
+    for r in repeats:
+        a=r['active'];lines.append(f"| {r['frames'][0]} ↔ {r['frames'][1]} | {a['n']} | {vec(a['rgb_difference_rms'])} | {vec(a['rgb_difference_abs_max'])} | {vec(a['ycc_difference_rms'])} |")
+    lines += ['', '再扣除原线性模型预测的两次输入位置变化后，三个配对的主通道残差 RMS 分别为 '+
+        '、'.join(r['channel']+' '+num(r['original_model_input_adjusted_RGB_rms'][i]) for i,r in enumerate(read('repeat_input_adjusted.json')['rows']))+
+        ' 码。这项结果依赖原模型，只作位置变化诊断，见 [repeat_input_adjusted.json](local/ramp_field_20261103/repeat_input_adjusted.json)。']
+    raw=np.array(data['drift']['raw_percent'])[:49];rgb=np.array(data['drift']['corrected_rgb'])[:49];yc=np.array(data['drift']['corrected_ycc'])[:49]
+    maximum_rgb_residual=vec(np.max(np.abs(rgb),axis=0))
+    lines += ['', f"1926→1933 相隔 {num(data['drift']['elapsed_s'],0)} 秒。49 个灰区 RAW 漂移的中位数为 {vec(np.median(raw,axis=0),2)}%，逐块全距为 R {rng([raw[:,0].min(),raw[:,0].max()],2)}%、G {rng([raw[:,1].min(),raw[:,1].max()],2)}%、B {rng([raw[:,2].min(),raw[:,2].max()],2)}%。这是空间相关的漂移，不能只用一个全图曝光倍率。",'',
+        f"按逐块 RAW 校正后，A 对全部灰区的 RGB 残差 RMS 为 {vec(np.sqrt(np.mean(rgb**2,axis=0)))} 码，最大绝对值为 {maximum_rgb_residual}；Y/Cb/Cr 残差 RMS 为 {vec(np.sqrt(np.mean(yc**2,axis=0)))}。R/G 重复的量级明显好于 B，B 第二次的 RAW 输入差和构图/定位不确定性也更大。不能把 B 的全部差异归因于硬件不稳定。",'',
+    '端点 A 的亮度变化与 RAW 校正预测的整体斜率约为 1.002，支持这一步局部曝光校正，见 [A_correction_check.json](local/ramp_field_20261103/A_correction_check.json)。只有两个 A，不能独立证明中间色度漂移按时间线性变化；逐块 RAW 校正也不能替代这个缺失的时间观测。','',
+    '![漂移和重复](local/ramp_field_20261103/drift-repeatability.png)','',
+    '## 给 recipe-redo-r1 的结论','',
+    '1. MOUNT L1 可以继续生成候选，独立通道命名和节点 +2 的控制规格保留。没有全颜色定量验收通过的连续亮度区间。当前实测支持的是节点 16 在 R RAW_WB 约 585–752、G 578–758、B 590–773 的已采灰点上有可复现局部响应；不能把这些端点之间的空档、其它色相或其它节点都算作已验收。',
+    '2. 插值继续采用分段线性工作模型，保留平滑核、空间分布和量化分支作误差评估。不要改为最近节点或左节点保持，也不要把这次自由拟合的峰位直接写成新的硬件节点位置。',
+    '3. 固件中的 +2 单位不变。R/G 灰阶亮度先以原幅度为起点；本组 Y 诊断约 R×1.06、G×1.02、B×1.21，可作为本地敏感性候选，不能全局重标单位。B 的旧组与新组不一致，且弱 Y 分量会放大量化误差。',
+    '4. 显式拆开亮度和色度误差。共用一个色度增益或一个固定 2×2 修正矩阵不能通过肤色留出；下一步要标定 MOUNT 自己随亮度与色相变化的局部色度微分响应，并保留 JPEG/ISP 量化顺序未定的误差项。',
+    '5. 本轮不改前向模型源码、配方、DAT、机身或单元固件。机器可读交接为 [recipe_redo_handoff.json](local/ramp_field_20261103/recipe_redo_handoff.json)。','',
+    '## 下一轮最少拍什么','',
+    '| 优先级 | 安排与理由 | 照片数 |',
+    '| --- | --- | ---: |',
+    '| P1，先做 | 经过新测试 DAT 的工程复审后，用同一灰阶和有色色块拍 A→R−2→G−2→B−2→A。与现有正向探针检查符号对称、局部线性及量化相位；色块保留肤色，并补一个让 B 落在响应带的有色区域。当前 a30675fa 没有负向条目。 | 5 |',
+    '| 补 R 峰顶，若要确定宽度 | 沿用现有 DAT，换成按本次逐块 RAW 校正的灰阶页，确保 R 在目前约 625–705 的空档内每 10–15 个输入码有点，再拍 A→R+2→R+2→A。先解决当前最大空档，不必重拍四档快门。 | 4 |',
+    '| P2，随后 | 仍需要多节点：节点 16 不能证明其它亮度段。新 DAT 每通道在两个分离节点 +2，先核对单一曝光能覆盖两段，再用 A→R→G→B→R→G→B→A 检查迁移和重复。P1 未闭合前，不据本轮结果扩大全亮度 L1 权限。 | 8 |','',
+    '以上均为 RAW＋JPG 的快门次数，不要求一次拍完。C120 的工程生命周期仍是独立任务，本轮未测试它。','',
+    '## 文件与复核','',
+    '新增分析脚本 [ramp_field_20261103.py](ramp_field_20261103.py)，报告及图表生成脚本 [ramp_field_20261103_report.py](ramp_field_20261103_report.py)。在项目根目录按 inventory、extract、geometry、measure、fit、diagnostics 的顺序串行执行；每条均用 nice -n 10、现有 studio/.venv/bin/python -I -B，数字库线程固定为 1。运行报告脚本可重建本报告、CSV 和 PNG。未安装依赖、未启动 Studio、未联网、未访问存储卡。','',
+    '输入、逐帧统计、三种 ROI、形状留出结果及图表均在 local/ramp_field_20261103。完整输入与清理回执为 [acceptance.json](local/ramp_field_20261103/acceptance.json)，附 [FIELD_20261103_RAMP.SHA256SUMS](FIELD_20261103_RAMP.SHA256SUMS) 和 [local 清单](local/ramp_field_20261103/SHA256SUMS)。旧报告、旧页面与旧 local 证据保持不变。']
+    (HERE/'FIELD_20261103_RAMP.md').write_text('\n'.join(lines)+'\n')
+    handoff=dict(verdict='partially_usable',module='MOUNT',type26_independent_control=True,
+        quantitative_model_closed=False,full_color_continuous_range_accepted=False,
+        interpolation='Keep piecewise linear as a working hypothesis; continuous alternatives not uniquely identified',
+        DAT_node_delta_definition_unchanged=True,local_luma_sensitivity_gains=candidate['luma_channel_gains'],
+        global_gains_accepted=False,chroma='Hue/brightness-dependent residual including R-skin Cb sign failure; constant 2x2 correction rejected by chromatic holdout',
+        measured_grey_raw_ranges={r['channel']:r['active_raw_range'] for r in coverage},
+        lens='35mm f/2 seven-element Mandler-design replica manual M lens',actual_aperture=5.6,
+        aperture_source='Owner confirmation; EXIF reports zero',P1_photos=5,R_peak_fill_photos=4,P2_photos=8,
+        reference_take_used_in_main_analysis=False)
+    (OUT/'recipe_redo_handoff.json').write_text(json.dumps(handoff,indent=2)+'\n')
+
+
+if __name__=='__main__':
+    assert os.getpriority(os.PRIO_PROCESS,0)>=10
+    figures();aggregate();report()
+    print(json.dumps(dict(report='FIELD_20261103_RAMP.md',verdict='partially_usable',figures=3,response_rows=156)))

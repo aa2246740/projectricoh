@@ -1,0 +1,84 @@
+{
+  "schema": "projectricoh-public-probe-check/1",
+  "date_local": "2026-11-04",
+  "environment": {
+    "python": "3.14.7",
+    "numpy": "2.4.3",
+    "Pillow": "12.2.0",
+    "scipy": "1.17.1"
+  },
+  "tested_layer": "same-Mac export of the actual public Git index; private original photos are read-only inputs",
+  "public_files": {
+    "research/git_sync/extract_probe_stats.py": "9a85fe090bda22a8939d3fced80bfd589e2110b71b85f58585f4acfc4d55c37a",
+    "research/git_sync/requirements-probe.txt": "a4a6a6af8ac3066e571f9aa7e7ce5fafe6b6a1bcbbf65319d0976ff2399a2004",
+    "research/chart_v2/analyze_chart_v2.py": "30378e458c41ef1fe2808bd566d5677c03d924f040bc40cf8a94c3aef21b515e",
+    "research/chart_v2/analyzer_runtime.py": "dce7252c2b4abd56db089571ab80a3588d8eaf867135b13c5c7aa468a57fbe3f",
+    "research/chart_v2/analyzer_geometry.py": "ddaa3ea0b9afc32217fb0e08e7c3e36589818d2f37a30af4390e0f850bbc69d2",
+    "research/chart_v2/patches.json": "e7e684e728d3319a4ac0772a752311642d32c19c13e8f7a3ff25abfed9d4a8ba",
+    "research/hue_ring/analyze_ring.py": "61cc911778fa1261d5759e0df0f7442bc858eb4b1ebadf530cac67d62a8746a8",
+    "research/hue_ring/sector_model.py": "d9d98478f2ef7eb86686dfaec53e10a42a55b2aa1d8292f090e6ac65e5bbf143",
+    "research/hue_ring/pilplot.py": "94f63fe02de049a2f29c10e1e9301ff85a93f2ff0a3584cc7f3b5bda876cc89a",
+    "research/stage2d_verification/analyze.py": "194ce6b9fa5fffab4446739186aebd6bf4a9c0411a6f323bbee63ed69b79ec61",
+    "research/stage2e_verification/analyze_2e.py": "beb5c93f4bab845ce3d7ccbf529116abb6a8155d362855dbbfe3e2af0c980ffa",
+    "research/color_calibration/analyze_capture.py": "9e20f581bf12393ce98cece541256f09de798d1f8b37cf8f15c9cf51d82b32b9",
+    "research/color_table_fit/dng_scene.py": "f0e8dd88baed2f6894b2427de7d7342ce37b2105716b2c47111d49ecfda5f59d",
+    "research/chart_v2/pages/00_white.png": "07ce451065ee532d266d33bb9139b6ba546409c91cb25b0d193f7313ab7e632a",
+    "research/chart_v2/pages/01_chart.png": "d4a50daf7d0561ff38ed781636bfa5cfccf5f11d42245c25ff969290e4ce6061",
+    "research/chart_v2/pages/02_chart.png": "0ba7469aee613ab6817d9e83b698fb31ea653bc4f57d5d03bdcc4da8336dad26",
+    "research/chart_v2/pages/03_chart.png": "64027a8f00bc9576b565078e65737951b2a2e16c45a2e7e9245b2858c21db2ff",
+    "research/chart_v2/pages/04_chart.png": "f31df850c5dd02abee09384b1972b71276ac9a43e132bf90929d569b9889c785",
+    "research/chart_v2/pages/05_chart.png": "e4c1ea5c335741132b1f9930d5ae426a5f387df16fe0386e61b2948a99f8e056",
+    "research/chart_v2/pages/06_chart.png": "4fae1bd45eede43e81a5266f0e358f8927936e7d7f3ae13a83e42ad18a5867e7"
+  },
+  "private_firmware_and_fit_files_in_export": false,
+  "extraction_pass": true,
+  "model_fit_run": false,
+  "frame_count": 3,
+  "patch_count": 233,
+  "valid_patch_count": 92,
+  "frames": [
+    {
+      "frame": "R8051262",
+      "kind": "screen",
+      "page": 1,
+      "unit": null,
+      "patches": 116,
+      "valid_patches": 81,
+      "source_sha256": {
+        "JPEG": "5c2530bffcdccb7fb91a963e86badf0881a31e26a803dbe2e090fc2fe9b99a4d",
+        "DNG": "968d45cb383c44868dc083037e5cf253e7b406d5bdda70194aef7973110141e3"
+      },
+      "aperture_f": null
+    },
+    {
+      "frame": "R8051269",
+      "kind": "white",
+      "page": 0,
+      "unit": "a12-50",
+      "patches": 1,
+      "valid_patches": 1,
+      "source_sha256": {
+        "JPEG": "18e1c1be00e20363382abbd6fa87f825acd00a9087a3caf72e6c75a75fa1a648",
+        "DNG": "bdff738125ea300bdec0b5888dd9e161d46ee607624a2dceb7687ff29c3fb145"
+      },
+      "aperture_f": 2.5
+    },
+    {
+      "frame": "R8051270",
+      "kind": "screen",
+      "page": 1,
+      "unit": "a12-50",
+      "patches": 116,
+      "valid_patches": 10,
+      "source_sha256": {
+        "JPEG": "3f8bc5f2c44690551a916d8dcdb4b9593b579665e22a89d9c15f62d2e798e584",
+        "DNG": "45b3836271a0a7cbea03e00875eb014e6fb613079cce52fa19dee2532811636f"
+      },
+      "aperture_f": 2.5
+    }
+  ],
+  "input_hashes_unchanged": true,
+  "chart_rebuild_files": 8,
+  "chart_rebuild_sha256_identical": true,
+  "second_physical_mac_tested": false
+}

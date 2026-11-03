@@ -1,0 +1,5 @@
+可以交复审
+Generation 126 first-publication settings check.
+Authoritative DAT: firmware/package_v36_g126/SD_ROOT/GXRCE.DAT
+SHA256 a855adcf3aaeaaa427b5ea43816c2cb7acd71fc9ceb7973bf8db3af8d6b1610d
+See research/g126_fix/REPORT.md. Older copied scripts and manifests are inherited references.

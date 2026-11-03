@@ -1,4 +1,28 @@
-# 交接说明（2026-10-19）
+# 交接说明（2026-10-23）
+
+2026-11-04 公开同步记录见 [Git 同步检查](../research/git_sync/REPORT.md)。第二台 Mac 先读[照片统计所需文件与分工](../research/git_sync/PROBE_ANALYSIS.md)。下文是 10 月 23 日的历史交接，不代表本轮重新验收了机身或卡。
+
+当前工作是修复配方切换残留，不再做峰值染色实验。先读 [本轮报告](../research/switch_residue/REPORT.md)、[R2 实现报告](../research/switch_residue/WORKER_R2.md)与首轮审查 `research/switch_residue/REVIEW_R1.md`。两项 R1 缺口已补齐，新候选 `efe6587190e8` 正等独立复审 R2；首轮 `ce4d9a537821` 已冻结，不准写卡。任务状态和后续命令保存在 `research/switch_residue/local/inflight.json`，不要重复派发活跃任务。
+
+## 现在的真实状态
+
+- 当前待审新包：`artifacts/stage2l-switch-packages/stage2l-switch-efe6587190e8/`，机身 SHA-256 `efe6587190e845b1c28364c02a6b8bde14e046e7c7411393a4c9892124b6bfd7`，8080 B payload SHA `5510f2be98906f3b17c8a664be6108a12def3a26c7b575e38812744b0de66c44`。host/sanitizer 各 282 项，root 原 R1 驱动 2052 故障场景通过，最终包 79 个清单文件读回通过。以下 ce4 只作首轮归档，不能用于交付。
+- 卡已只读备份，37 个根文件仍与备份相同，177 个 DCIM 指纹已保存。备份指针为 `research/switch_residue/local/card-backup-pointer.json`。新 `prepare_card.py` 尚未执行；它要求不存在的最终 `release.json`，不能跳过 R2 复审手填假通过。
+
+- 相机：GXR + A12 50mm，官方组件 1.51；机身运行 Stage2j + Stage2k P0，`ilaunch3` SHA-256 为 `8a0ab7a1c490d1213eb22ff9c4b41b7c874fb774b6606330f4884f4ffb9820ba`。不是下面 10 月 19 日的 R3。
+- 最后一次卡交接是 R-all 的 P，SHA 前缀 `c84d12e4`。本轮用户已确认重新运行并显示 RESTORED、重新插卡，不再要求重复恢复。新固件移除了 P0，不再运行 P。
+- 新树 `firmware/stage2l_switch/`：deep 失败不写 S、不请求 preview、不发布新选择，光标退回上个成功槽；08 为普通切换。uncertain 继续锁住深层切换。原 F6/F7 与启动 T 范围问题未改。
+- 新包 `artifacts/stage2l-switch-packages/stage2l-switch-ce4d9a537821/`：机身 SHA-256 为 `ce4d9a537821908435a1af6f0510caaf1655f52fd950e684fad4af924c3240fc`，payload 8064 B；candidate 35 文件，official recovery 29 文件。使用已有 v5-fuji-daily，01～06 与现卡测试表相同，07/08 为标准别名。没有新增色彩拟合。
+- 本地验证：host 与 sanitizer 各 266 项；现卡表独立 6/6；daily 表 64 种槽位对及扫过 08 再回 04、关页重开均通过。`research/switch_residue/audit_package.py` 对最终包读回通过。没有相机成像、DNG/JPEG 或固件更新验收；本轮未写卡。
+- 用户指定全部 worker 使用 GPT-6.1-Sol max，不切换 Claude。模型 capacity 失败按用户要求重试，不能用旧交接里的模型偏好覆盖它。
+
+## 下一次接手
+
+先完成 R1 缺口、重新构建和独立复审，再确定最终包哈希。旧 R-all 恢复已获用户确认；卡插回后先只读核对 UUID `0F824AED-99E3-397F-AC62-EFC0D90DD373`，备份现卡。已有授权是核对通过后准备卡，不必重新逐步问许可。只使用经核验的最终新包；不把 P 混入新包，不改照片。物理升级和同场景 04→06→08→04、JPEG+DNG 验收由用户完成。
+
+峰值“硬件绝对不能换色”结论已更正，详见 [证据报告](../research/peaking_color/EVIDENCE_REVIEW_20261023.md)；不能据可写表、静态反汇编或离线算法声称已实现彩色描边。
+
+## 2026-10-19 历史交接（状态和模型约定已被上文更新）
 
 新 session 从这里接手。完整决策记录在 `decisions.tsv`（6 列：时间、key、决定、原因、产物、备注），最后十几行是最新进展。
 

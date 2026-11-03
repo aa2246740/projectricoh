@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GXR 电脑工作室 · 可点击原型（studio-ux-r1）</title>
+<style>
+:root{--bg:#121315;--panel:#1b1c1f;--panel2:#25272b;--line:#2f3237;--text:#e8e8ea;--dim:#9a9ca3;--acc:#e8b04a;--ok:#6cc487;--warn:#e0a13a;--bad:#e06a5a}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;gap:14px;padding:0 14px;height:52px;border-bottom:1px solid var(--line);background:var(--panel);flex:none}
+.logo{font-weight:700;letter-spacing:.3px;margin-right:6px}
+.spacer{flex:1}
+button{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+button:hover:not(:disabled){border-color:#4b5058}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{background:var(--acc);color:#1d1606;border-color:var(--acc);font-weight:600}
+button.ghost{background:none;border-color:transparent;color:var(--dim)}
+button.tab{background:none;border:0;color:var(--dim);padding:6px 12px}
+button.tab.on{background:var(--panel2);color:var(--text)}
+main{flex:1;display:flex;min-height:0;min-width:0}
+.view{flex:1;display:flex;flex-direction:column;min-height:0;min-width:0}
+.note{font-size:12px;color:var(--dim)}
+.label{font-size:12px;color:var(--dim);margin:12px 0 6px}
+h2{font-size:18px;margin:8px 0 4px}
+h3{font-size:15px;margin:14px 0 6px}
+.kbd{font:12px ui-monospace,Menlo,monospace;background:var(--panel2);border:1px solid var(--line);padding:0 5px;border-radius:4px}
+.pill{font-size:11px;padding:0 7px;border-radius:99px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.pill.ok{color:var(--ok);border-color:#2e4d3a}
+.pill.warn{color:var(--warn);border-color:#5a4520}
+.pill.bad{color:var(--bad);border-color:#5a2e28}
+.banner{display:flex;align-items:center;gap:12px;padding:9px 16px;background:var(--panel2);border-bottom:1px solid var(--line);flex:none}
+.banner.ok{background:#1c2c21}
+.banner.warn{background:#2c2415;color:#f1d7a2}
+.banner.bad{background:#2d1b18}
+.bottombar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--line);background:var(--panel);flex:none}
+footer{display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--line);background:var(--panel);flex:none;font-size:13px}
+/* 图库 */
+.lib{display:flex;flex:1;min-height:0}
+.days{width:172px;border-right:1px solid var(--line);padding:12px;overflow:auto;flex:none}
+.daybtn{display:flex;width:100%;justify-content:space-between;margin:3px 0;border:0;background:none;text-align:left}
+.daybtn.on{background:var(--panel2)}
+.daybtn span{color:var(--dim)}
+.grid{flex:1;overflow:auto;padding:16px}
+.grid-inner{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.thumb{position:relative;aspect-ratio:3/2;border-radius:6px;cursor:pointer;border:2px solid transparent;overflow:hidden}
+.thumb.sel{border-color:var(--acc)}
+.thumb:hover{filter:brightness(1.08)}
+.chk{position:absolute;left:6px;top:6px;width:24px;height:24px;padding:0;border-radius:50%;font-size:12px;line-height:20px;background:rgba(0,0,0,.45);border-color:#555}
+.chk.on{background:var(--acc);color:#1d1606;border-color:var(--acc)}
+.badge{position:absolute;right:6px;bottom:6px;font-size:11px;background:rgba(0,0,0,.6);padding:0 6px;border-radius:4px;color:#d6d6d9}
+.cap{position:absolute;left:8px;bottom:6px;font-size:11px;color:#eee;text-shadow:0 1px 2px #000}
+.selbar{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid var(--line);background:var(--panel);flex:none}
+.empty{margin:60px auto;max-width:420px;text-align:center;color:var(--dim)}
+.empty .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px}
+.empty .box b{color:var(--text);font-size:15px}
+/* 大图 */
+.viewer{display:flex;flex:1;min-height:0}
+.stage{flex:1;display:flex;flex-direction:column;min-width:0;background:#0b0c0d}
+.topline{display:flex;align-items:center;gap:10px;padding:8px 14px;flex:none}
+.stagebody{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:10px}
+.tile{width:min(100%,920px);aspect-ratio:3/2;border-radius:4px;position:relative;container-type:size;transition:filter .2s,transform .2s;box-shadow:0 10px 40px rgba(0,0,0,.5);max-height:100%}
+.cropwrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;pointer-events:none}
+.cropframe{width:min(100cqw,calc(100cqh * var(--r)));aspect-ratio:var(--r);border:1.5px solid var(--acc);box-shadow:0 0 0 9999px rgba(0,0,0,.5);transition:width .2s}
+.hint{font-size:12px;color:var(--dim);text-align:center;padding:4px 0 8px;flex:none}
+.side{width:340px;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0;flex:none}
+.side-tabs{display:flex;border-bottom:1px solid var(--line);flex:none}
+.side-tabs button{flex:1;border:0;border-radius:0;background:none;color:var(--dim);padding:11px 0;border-bottom:2px solid transparent}
+.side-tabs button.on{color:var(--text);border-bottom-color:var(--acc)}
+.side-body{padding:14px 16px;overflow:auto;flex:1}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:4px 9px;font-size:13px}
+.chip.on{background:var(--acc);color:#1d1606;border-color:var(--acc);font-weight:600}
+.btnrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0}
+.krow{margin:9px 0}
+.klab{display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:2px;flex-wrap:wrap}
+.kctl{display:flex;align-items:center;gap:10px}
+.kctl input{flex:1}
+.kv{min-width:52px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text)}
+input[type=range]{accent-color:var(--acc);width:100%}
+input[type=text]{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 10px;width:100%;font:inherit}
+.arow{margin:8px 0}
+.arow .klab{justify-content:space-between}
+/* 弹层 */
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:20}
+#ov.on{display:flex}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:12px;width:min(600px,92vw);max-height:88vh;overflow:auto;padding:20px 22px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.sheet h3{margin-top:0;font-size:17px}
+.drop{border:1.5px dashed #4b5058;border-radius:10px;padding:34px 16px;text-align:center;cursor:pointer;color:var(--dim);margin:12px 0}
+.drop:hover{border-color:var(--acc);color:var(--text)}
+.preview{height:170px;border-radius:8px;margin:8px 0;background:linear-gradient(120deg,hsl(20 40% 45%),hsl(200 30% 25%));transition:filter .2s}
+.simbar{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden;margin:8px 0 4px}
+.simbar div{height:100%;background:var(--acc)}
+.result{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+.sheet ul{padding-left:18px;margin:6px 0}
+.sheet ol{padding-left:18px;margin:6px 0}
+/* 页面 */
+.page{padding:20px 26px;overflow:auto;flex:1;max-width:880px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:10px 0}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:10px 0}
+.step ul{margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--dim)}
+.opt{display:block;margin:6px 0;cursor:pointer}
+.split{display:flex;gap:26px;flex-wrap:wrap}
+.split>div{flex:1;min-width:300px}
+.list{display:flex;flex-direction:column;gap:6px;margin:6px 0}
+.item{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.item .note{margin-left:2px}
+#toast{position:fixed;left:50%;bottom:60px;transform:translateX(-50%);background:#2b2d31;border:1px solid #3d4046;padding:8px 16px;border-radius:99px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:30}
+#toast.on{opacity:1}
+table.kt{border-collapse:collapse;font-size:13px;width:100%}
+table.kt td{padding:5px 8px;border-bottom:1px solid var(--line)}
+table.kt td:first-child{width:130px}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">GXR 工作室</span>
+  <button class="tab" data-act="view" data-v="library">照片</button>
+  <button class="tab" data-act="view" data-v="recipes">配方</button>
+  <button class="tab" data-act="view" data-v="camera">相机</button>
+  <span class="spacer"></span>
+  <button data-act="exportnow">导出</button>
+  <button class="ghost" data-act="help" title="快捷键与引导（?）">?</button>
+</header>
+
+<main id="main"></main>
+
+<footer>
+  <span id="cardtxt"></span>
+  <span class="spacer"></span>
+  <span class="note">原型演示 · 没有真的读卡</span>
+  <button id="cardbtn" data-act="cardbtn"></button>
+</footer>
+
+<div id="ov"></div>
+<div id="toast"></div>
+
+<script>
+/* ---------- 数据（占位） ---------- */
+const KN=[
+  {k:'cont',n:'对比',s:'Cont',min:-9,max:9,c:'now'},
+  {k:'high',n:'高光',s:'High',min:-9,max:9,c:'now'},
+  {k:'shad',n:'阴影',s:'Shad',min:-9,max:9,c:'now'},
+  {k:'fade',n:'褪色',s:'Fade',min:0,max:9,c:'none'},
+  {k:'satu',n:'饱和度',s:'Satu',min:-9,max:9,c:'now',col:true},
+  {k:'warm',n:'冷暖',s:'Warm',min:-9,max:9,c:'none',col:true},
+  {k:'tint',n:'品绿',s:'Tint',min:-9,max:9,c:'none',col:true},
+  {k:'splt',n:'分离色调',s:'Splt',min:-9,max:9,c:'none',col:true},
+  {k:'filt',n:'黑白滤镜',s:'Filt',min:-9,max:9,c:'none',bw:true}
+];
+const BASES=[
+  {id:'01',n:'GR 正片',d:'仿理光 GR IV 正片风格'},
+  {id:'02',n:'GR 负片',d:'仿理光 GR IV 负片风格'},
+  {id:'03',n:'高反差黑白',d:'高反差黑白，可加黑白滤镜'},
+  {id:'04',n:'标准',d:'相机原厂样子（开机默认）'},
+  {id:'05',n:'富士 CC',d:'仿富士 Classic Chrome'},
+  {id:'06',n:'富士 CN',d:'仿富士 Classic Neg.'},
+  {id:'07',n:'徕卡 Chrome',d:'仿徕卡 Chrome 风格'},
+  {id:'08',n:'徕卡 Vivid',d:'仿徕卡 Vivid 风格'}
+];
+const RATIOS=[
+  ['orig','原比例',1.5,'跟原图一样，3:2'],
+  ['3:2','3:2',1.5,'经典 3:2'],
+  ['4:3','4:3',1.3333,'4:3'],
+  ['1:1','1:1',1,'方形'],
+  ['4:5','4:5',0.8,'竖构图'],
+  ['16:9','16:9',1.7778,'宽屏'],
+  ['xpan','XPan 65:24',2.7083,'全景条，适合横向景物'],
+  ['free','自由',1.2,'想怎么裁就怎么裁（原型只显示大致框）']
+];
+const ONB=[
+  ['插上卡，照片自动进来','插上相机的存储卡，照片会自动读进来，按拍摄日期排好。卡上的文件一个都不会改。'],
+  ['点一张，裁一裁、换个风格','裁切随时可以还原。「风格」就是相机里的配方，你可以在上面再微调。'],
+  ['调好了，导出 JPEG','选尺寸和质量就能导出。想把调好的配方带回相机，去「相机」页。']
+];
+const SAMPLE_LUT_RESULT=[['05','富士 CC',91],['06','富士 CN',87],['01','GR 正片',84]];
+
+function mkPhoto(i,day,time,name,bad){
+  return {id:name,name,day,time,dng:i%9!==5,jpg:i%7!==3,hue:(i*47)%360,base:'04',tweaks:{},
+    adj:{exp:0,con:0,hi:0,sh:0,temp:0,tint:0,mx:100,my:100},crop:{r:'orig',angle:0},bad:!!bad};
+}
+const pad2=n=>String(n).padStart(2,'0');
+function seedLibrary(){
+  const L=[];
+  for(let i=0;i<14;i++){
+    const day=i<7?'2026-10-19':'2026-10-27';
+    L.push(mkPhoto(i,day,pad2(9+i%10)+':'+pad2((i*13)%60),'R00001'+pad2(i+1)));
+  }
+  return L;
+}
+function cardPhotos(){
+  const C=[];
+  for(let i=0;i<12;i++){
+    C.push(mkPhoto(i+20,'2026-10-30',pad2(10+i%8)+':'+pad2((i*11)%60),'R00002'+pad2(i+1),i===5));
+  }
+  return C;
+}
+
+/* ---------- 状态 ---------- */
+const S={
+  view:'library', sel:null, day:null, picked:[], tab:'crop',
+  photos:seedLibrary(), card:cardPhotos(),
+  cardState:'none', impQ:[], impDone:0, impBad:0, impTotal:0, timer:null, bannerOK:false, bannerMsg:'',
+  myRecs:[{name:'夜景冷调',base:'05',tweaks:{cont:1,high:-1,shad:2,fade:0,satu:-2,warm:0,tint:0,splt:0,filt:0,amount:100}}],
+  armZero:false, compare:false, lastSnap:null, undo:[],
+  ov:'onb', onb:0, lut:null, lutResult:false, lutPv:false, lutBase:'05',
+  exp:{scope:'one',size:'3000',q:85,prog:-1}, expT:null,
+  camSlot:0, consent:false, camPrg:-1, camRes:'', camT:null, drag:false
+};
+
+/* ---------- 工具 ---------- */
+const $=s=>document.querySelector(s);
+const sgn=v=>(v>0?'+':'')+v;
+const grad=h=>`linear-gradient(135deg,hsl(${h} 35% 42%),hsl(${(h+50)%360} 28% 20%))`;
+function list(){
+  return S.photos.slice().sort((a,b)=>(a.day<b.day?1:a.day>b.day?-1:(a.name<b.name?-1:1)));
+}
+function cur(){ return S.photos.find(p=>p.id===S.sel); }
+function T(p){
+  if(!p.tweaks[p.base]) p.tweaks[p.base]={cont:0,high:0,shad:0,fade:0,satu:0,warm:0,tint:0,splt:0,filt:0,amount:100};
+  return p.tweaks[p.base];
+}
+function pairTxt(p){ return p.dng&&p.jpg?'DNG+JPG':(p.jpg?'只有 JPG':'只有 DNG'); }
+function ratioVal(k){ const r=RATIOS.find(x=>x[0]===k); return r?r[2]:1.5; }
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(S.toastT); S.toastT=setTimeout(()=>t.classList.remove('on'),2200);
+}
+function snapshot(){ return JSON.stringify(cur()); }
+function commitSnap(){
+  if(!cur()) return;
+  if(S.lastSnap) S.undo.push(S.lastSnap);
+  if(S.undo.length>100) S.undo.shift();
+  S.lastSnap=snapshot();
+}
+function undo(){
+  const s=S.undo.pop();
+  if(!s) return toast('没有可以撤销的了');
+  const o=JSON.parse(s);
+  const i=S.photos.findIndex(p=>p.id===o.id);
+  if(i>=0) S.photos[i]=o;
+  S.lastSnap=s; render();
+}
+function filterOf(p){
+  const t=T(p), k=t.amount/100, a=p.adj;
+  const c=(1+t.cont*0.04*k)*(1+a.con*0.01);
+  const b=(1+a.exp*0.12)*(1+t.high*0.02*k);
+  const s=Math.max(0,(1+t.satu*0.08*k)*(1-t.fade*0.04*k));
+  return `brightness(${b.toFixed(2)}) contrast(${c.toFixed(2)}) saturate(${s.toFixed(2)})${p.base==='03'?' grayscale(1)':''}`;
+}
+function paintPreview(){
+  const t=document.getElementById('tile'); const p=cur();
+  if(!t||!p) return;
+  t.style.transform=`rotate(${p.crop.angle}deg)`;
+  t.style.filter=S.compare?'none':filterOf(p);
+  const cf=document.getElementById('cf');
+  if(cf){ cf.style.setProperty('--r',ratioVal(p.crop.r)); cf.style.transform=`rotate(${-p.crop.angle}deg)`; }
+}
+function cardText(){
+  if(S.cardState==='none') return '卡：未插入。插上相机的存储卡，照片会自动导入。';
+  if(S.cardState==='importing') return `卡：正在导入 ${S.impDone}/${S.impTotal}，先别拔卡`;
+  if(S.cardState==='ready') return '卡：已插入，导入完成';
+  return '卡：已安全弹出，可以拔下来了';
+}
+function cardBtn(){
+  if(S.cardState==='none') return '模拟：插卡';
+  if(S.cardState==='importing') return '导入中…';
+  if(S.cardState==='ready') return '安全弹出卡';
+  return '模拟：插回卡';
+}
+
+/* ---------- 导入（模拟） ---------- */
+function insertCard(){
+  const q=S.card.filter(c=>!S.photos.some(p=>p.id===c.id));
+  if(!q.length){
+    S.cardState='ready'; S.bannerOK=true; S.bannerMsg='这张卡上的照片都导入过了，没有新照片。';
+    S.impDone=0; S.impBad=0; S.impTotal=0; toast('这张卡上的照片都导入过了'); return render();
+  }
+  S.cardState='importing'; S.impQ=q; S.impTotal=q.length; S.impDone=0; S.impBad=0; S.bannerOK=false;
+  clearInterval(S.timer);
+  S.timer=setInterval(tickImport,260);
+  render();
+}
+function tickImport(){
+  const p=S.impQ.shift();
+  if(p){ S.impDone++; if(p.bad) S.impBad++; else S.photos.push(p); }
+  if(!S.impQ.length){
+    clearInterval(S.timer);
+    S.cardState='ready'; S.bannerOK=true;
+    S.bannerMsg=`导入完成，共 ${S.impDone-S.impBad} 张${S.impBad?`（${S.impBad} 张读不出来，已跳过）`:''}。现在可以安全弹出卡了。`;
+  }
+  render();
+}
+function cancelImport(){
+  clearInterval(S.timer);
+  S.cardState='ready'; S.bannerOK=true;
+  S.bannerMsg=`已取消导入。已导入 ${S.impDone-S.impBad} 张，剩下的插回卡可以继续。`;
+  render();
+}
+function ejectCard(){
+  if(S.cardState==='importing') return toast('还在导入，先别拔卡');
+  S.cardState='ejected'; S.bannerOK=false; render();
+}
+
+/* ---------- 视图 ---------- */
+function render(){
+  document.querySelectorAll('button.tab').forEach(b=>{
+    const v=b.dataset.v;
+    b.classList.toggle('on', v===S.view || (S.view==='viewer'&&v==='library'));
+  });
+  if(S.view==='viewer' && !cur()) S.view='library';
+  const m=$('#main');
+  m.innerHTML = S.view==='viewer'? vViewer() : S.view==='recipes'? vRecipes() : S.view==='camera'? vCamera() : vLib();
+  renderFooter(); renderOv(); paintPreview();
+}
+function renderFooter(){
+  $('#cardtxt').textContent=cardText();
+  const b=$('#cardbtn'); b.textContent=cardBtn(); b.disabled=S.cardState==='importing';
+}
+
+function vLib(){
+  const L=list(); const shown=S.day?L.filter(p=>p.day===S.day):L;
+  const days=[...new Set(L.map(p=>p.day))];
+  let banner='';
+  if(S.cardState==='importing'){
+    banner=`<div class="banner">发现相机卡 · 正在导入 ${S.impDone}/${S.impTotal} 张 · 只读复制，卡上的文件不会改动<span class="spacer"></span><button data-act="cancelimp">取消导入</button></div>`;
+  } else if(S.bannerOK){
+    banner=`<div class="banner ${S.impBad?'warn':'ok'}">${S.bannerMsg}<span class="spacer"></span><button class="primary" data-act="dismiss">知道了</button></div>`;
+  }
+  let body;
+  if(!L.length){
+    body=`<div class="empty"><div class="box"><b>还没有照片。</b><br>插上相机的存储卡，照片会自动读进来，按拍摄日期排好。<br><br>卡上的文件不会被改动。<br><br><button data-act="cardbtn">模拟：插卡（演示用）</button></div></div>`;
+  } else {
+    body=`<div class="grid-inner">${shown.map(thumb).join('')}</div>`;
+  }
+  const selbar=S.picked.length?`<div class="selbar">已选 ${S.picked.length} 张<button class="primary" data-act="exportsel">导出选中的</button><button data-act="clearpick">取消选择</button></div>`:'';
+  return `<div class="view">${banner}<div class="lib"><aside class="days"><div class="note" style="margin:2px 0 8px">按拍摄日期</div>
+    <button class="daybtn ${!S.day?'on':''}" data-act="day" data-v="">全部 <span>${L.length}</span></button>
+    ${days.map(d=>`<button class="daybtn ${S.day===d?'on':''}" data-act="day" data-v="${d}">${d.slice(5)} <span>${L.filter(p=>p.day===d).length}</span></button>`).join('')}
+    </aside><section class="grid">${body}</section></div>${selbar}</div>`;
+}
+function thumb(p){
+  const picked=S.picked.includes(p.id);
+  return `<div class="thumb ${picked?'sel':''}" data-act="open" data-v="${p.id}" title="${p.day} ${p.time} · ${p.name}" style="background:${grad(p.hue)}">
+    <button class="chk ${picked?'on':''}" data-act="pick" data-v="${p.id}" title="选中">✓</button>
+    <span class="cap">${p.name}</span>
+    <span class="badge">${pairTxt(p)}</span></div>`;
+}
+
+function vViewer(){
+  const p=cur(); const L=list(); const i=L.indexOf(p);
+  const cropFrame=S.tab==='crop'?`<div class="cropframe" id="cf" style="--r:${ratioVal(p.crop.r)}"></div>`:'';
+  return `<div class="viewer"><div class="stage">
+    <div class="topline"><button class="ghost" data-act="back">‹ 返回图库</button><span class="note">${p.day} ${p.time} · ${p.name} · ${pairTxt(p)}</span>${S.compare?'<span class="pill warn">看原图中</span>':''}</div>
+    <div class="stagebody"><div class="tile" id="tile" style="background:${grad(p.hue)}"><div class="cropwrap">${cropFrame}</div></div></div>
+    <div class="hint"><span class="pill">电脑预测</span> 画面是占位色块，只示意效果 · 按住 <span class="kbd">Space</span> 看原图 · ← → 换照片</div>
+    <div class="bottombar"><button data-act="undo" title="⌘Z">↶ 撤销</button><button data-act="revert">还原原图</button><span class="spacer"></span>
+      <button data-act="prev" ${i<=0?'disabled':''}>‹ 上一张</button><button data-act="next" ${i>=L.length-1?'disabled':''}>下一张 ›</button></div>
+  </div>
+  <aside class="side"><div class="side-tabs">${[['crop','裁切'],['recipe','配方'],['adjust','调整'],['export','导出']].map(([k,n])=>`<button class="${S.tab===k?'on':''}" data-act="tab" data-v="${k}">${n}</button>`).join('')}</div>
+    <div class="side-body">${sideBody(p)}</div></aside></div>`;
+}
+function sideBody(p){
+  if(S.tab==='crop'){
+    return `<h3>裁切</h3><p class="note">原图没有被改动。裁切只是记下位置，随时可以还原。</p>
+      <div class="label">比例</div>
+      <div class="chips">${RATIOS.map(r=>`<button class="chip ${p.crop.r===r[0]?'on':''}" data-act="ratio" data-v="${r[0]}" title="${r[3]}">${r[1]}</button>`).join('')}</div>
+      <div class="label">拉直　<span class="kv" id="angv" style="display:inline">${sgn(p.crop.angle.toFixed(1))}°</span></div>
+      <input type="range" min="-10" max="10" step="0.1" value="${p.crop.angle}" data-f="angle">
+      <div class="btnrow"><button data-act="cropreset">还原裁切</button><span class="spacer"></span><button class="primary" data-act="cropdone">完成</button></div>
+      <p class="note">XPan 65:24 是全景条，宽 : 高 ≈ 2.7 : 1，适合横向景物。</p>`;
+  }
+  if(S.tab==='recipe'){
+    const t=T(p); const bw=p.base==='03';
+    const bases=BASES.map(b=>`<button class="chip ${p.base===b.id?'on':''}" data-act="base" data-v="${b.id}" title="${b.d}">${b.id} ${b.n}</button>`).join('');
+    const mine=S.myRecs.map((r,idx)=>`<button class="chip" data-act="myapply" data-v="${idx}" title="基于底子 ${r.base}">★ ${r.name}</button>`).join('')||'<span class="note">还没有我的配方</span>';
+    const kn=KN.filter(k=>bw?!k.col:!k.bw).map(k=>krow(k,t)).join('');
+    return `<h3>配方</h3><p class="note">选一个风格，再微调。预览标「电脑预测」。底子是相机里的风格。</p>
+      <div class="label">8 个底子</div><div class="chips">${bases}</div>
+      <div class="label">我的配方</div><div class="chips">${mine}</div>
+      <div class="label">整体强度　<span class="kv" id="kv-amount" style="display:inline">${t.amount}%</span>（100% = 配方原样）</div>
+      <input type="range" min="0" max="150" step="5" value="${t.amount}" data-f="amount">
+      <div class="label">微调（每项 −9 到 +9，0 是原样）</div>
+      ${kn}
+      <div class="btnrow"><button data-act="zero">${S.armZero?'再点一次：全部归零':'全部归零'}</button><button data-act="saverec">存为我的配方…</button></div>
+      <div class="btnrow"><button data-act="lutopen">导入调色文件（.cube）</button></div>
+      <p class="note">★ <span class="pill ok">相机 ±5</span> 对比、高光、阴影、饱和度：相机目前只认 ±5。<br>
+      <span class="pill warn">仅电脑</span> 褪色、冷暖、品绿、分离色调：相机版本加上后才会写入。${bw?'<br>黑白 03 不显示饱和、冷暖、品绿、分离色调。':''}</p>`;
+  }
+  if(S.tab==='adjust'){
+    const a=p.adj;
+    const row=(key,name,min,max,step,v,fmt)=>`<div class="arow"><div class="klab"><b>${name}</b><span class="spacer"></span><span class="kv" id="kv-adj-${key}">${fmt(v)}</span></div>
+      <input type="range" min="${min}" max="${max}" step="${step}" value="${v}" data-f="adj" data-k="${key}"></div>`;
+    const ev=v=>`${v>0?'+':''}${Number(v).toFixed(1)} EV`;
+    const n=v=>sgn(v);
+    return `<h3>调整</h3><p class="note"><span class="pill warn">仅电脑</span> 这里的调整只在电脑上生效，不会写进相机配方。</p>
+      ${row('exp','曝光',-2,2,0.1,a.exp,ev)}
+      ${row('con','对比',-50,50,1,a.con,n)}
+      ${row('hi','高光',-50,50,1,a.hi,n)}
+      ${row('sh','阴影',-50,50,1,a.sh,n)}
+      <div class="label">白平衡</div>
+      ${row('temp','色温',-50,50,1,a.temp,n)}
+      ${row('tint','色调',-50,50,1,a.tint,n)}
+      <div class="label">曲线（拖黄点：中间调变亮或变暗，两端固定）</div>
+      <svg id="curve" viewBox="0 0 200 200" width="200" height="200" style="display:block;margin:4px 0">
+        <rect x="0" y="0" width="200" height="200" fill="#15161a" stroke="#2f3237"/>
+        <line x1="0" y1="200" x2="200" y2="0" stroke="#2f3237" stroke-dasharray="3 3"/>
+        <path id="cpath" d="${curvePath(a)}" fill="none" stroke="#e8b04a" stroke-width="2"/>
+        <circle id="chandle" cx="${a.mx}" cy="${a.my}" r="7" fill="#e8b04a" style="cursor:grab"/>
+      </svg>
+      <div class="btnrow"><button data-act="adjreset">全部归零</button></div>`;
+  }
+  return `<h3>导出</h3><p class="note">导出 JPEG，可以选尺寸和质量。原图不会变。</p>
+    <div class="btnrow"><button class="primary" data-act="exportopen" data-v="one">导出这一张…</button></div>
+    <p class="note">要一起导出多张：回到图库，勾选照片，点「导出选中的」。</p>`;
+}
+function krow(k,t){
+  const v=t[k.k];
+  const pill=k.c==='now'?'<span class="pill ok">相机 ±5</span>':'<span class="pill warn">仅电脑</span>';
+  const fmt=k.min<0?sgn(v):String(v);
+  return `<div class="krow"><div class="klab"><b>${k.n}</b><span class="note">${k.s}</span>${pill}</div>
+    <div class="kctl"><input type="range" min="${k.min}" max="${k.max}" step="1" value="${v}" data-f="knob" data-k="${k.k}"><span class="kv" id="kv-${k.k}">${fmt}</span></div></div>`;
+}
+function curvePath(a){ return `M0 200 Q ${2*a.mx-100} ${2*a.my-100} 200 0`; }
+
+function vRecipes(){
+  return `<div class="page"><h2>配方</h2>
+    <div class="split"><div>
+      <p class="note">8 个底子是相机里的风格，你在它上面微调。我的配方是你调好存下来的，可以写回相机。</p>
+      <h3>8 个底子</h3>
+      <div class="list">${BASES.map(b=>`<div class="item"><b>${b.id} ${b.n}</b><span class="note">${b.d}</span></div>`).join('')}</div>
+      <h3>我的配方</h3>
+      <div class="list">${S.myRecs.map((r,i)=>`<div class="item"><b>★ ${r.name}</b><span class="note">基于底子 ${r.base}</span><span class="spacer"></span><button data-act="myrename" data-v="${i}">改名</button><button class="ghost" data-act="mydel" data-v="${i}">删除</button></div>`).join('')||'<p class="note">还没有。</p>'}</div>
+    </div><div>
+      <h3>做新配方</h3>
+      <div class="card"><p><b>方法 1：在照片上调。</b><br><span class="note">打开一张照片，切到「配方」标签，选底子，再微调。</span></p>
+        <button data-act="gopick">去选一张照片</button>
+        <hr style="border-color:#2f3237;margin:14px 0">
+        <p><b>方法 2：用别人的调色文件（.cube）。</b><br><span class="note">电脑会把它换算成相机能用的配方，并告诉你有多接近（电脑预测）。</span></p>
+        <button data-act="lutopen">导入调色文件…</button>
+      </div>
+    </div></div></div>`;
+}
+
+function vCamera(){
+  const can=S.cardState==='ready' && S.consent && S.myRecs.length>0 && S.camPrg<0;
+  const why=[];
+  if(S.cardState==='none'||S.cardState==='ejected') why.push('先把相机的存储卡插到电脑上');
+  if(S.cardState==='importing') why.push('等导入完成再写，免得两边同时读写');
+  if(!S.consent) why.push('请先勾选上面的风险确认');
+  const slots=S.myRecs.map((r,i)=>`<label class="opt"><input type="radio" name="slot" ${S.camSlot===i?'checked':''} data-act="camslot" data-v="${i}"> ★ ${r.name}（底子 ${r.base}）</label>`).join('')
+    ||'<p class="note">还没有「我的配方」。先在电脑上调好一个，再来这里。</p>';
+  const rec=S.myRecs[S.camSlot]||S.myRecs[0];
+  const prog=S.camPrg>=0?`<div class="simbar"><div style="width:${Math.min(100,S.camPrg)}%"></div></div><p class="note">备份并写入中…（演示）</p>`:'';
+  const res=S.camRes?`<div class="banner ${S.camRes.startsWith('✓')?'ok':'bad'}" style="border-radius:8px;margin-top:10px">${S.camRes}</div>`:'';
+  return `<div class="page"><h2>相机</h2>
+    <div class="card"><b>卡</b>　<span>${cardText()}</span></div>
+    <h3>发到相机（把配方写回卡）</h3>
+    <div class="banner warn" style="border-radius:8px">⚠ 状态：还没在相机上实测。目前只做预览和备份说明。这里的写入是演示，不会真的写卡。</div>
+    <div class="step"><b>第 1 步 · 选一个我的配方</b><div style="margin-top:6px">${slots}</div></div>
+    <div class="step"><b>第 2 步 · 看清楚会写什么</b>
+      <ul>
+        <li>写入：「${rec?rec.name:'—'}」，基于底子 ${rec?rec.base:'—'}</li>
+        <li>相机只认 ±5 的四项。冷暖、品绿、分离色调、褪色、黑白滤镜不会写入</li>
+        <li>卡上原来的配方文件会先复制到电脑的备份文件夹</li>
+        <li>写完先「安全弹出」，再放回相机；关机再开机才生效</li>
+      </ul></div>
+    <div class="step"><b>第 3 步 · 确认风险</b>
+      <label class="opt"><input type="checkbox" ${S.consent?'checked':''} data-act="consent"> 我知道这是非官方修改，相机和卡可能出问题，风险自己承担</label></div>
+    <div class="btnrow"><button class="primary" data-act="camwrite" ${can?'':'disabled'}>备份并写入、校验</button>
+      ${can?'':`<span class="note">${why.length?why.join('；'):'暂时不能写'}</span>`}</div>
+    ${prog}${res}
+    <p class="note" style="margin-top:14px">结果：写入后会回读校验。一致 → 「写入成功」；不一致 → 「写入没通过，卡上原来的文件已保留」。</p>
+    </div>`;
+}
+
+/* ---------- 弹层 ---------- */
+function renderOv(){
+  const ov=$('#ov');
+  const map={onb:ovOnb,lut:ovLut,export:ovExport,help:ovHelp};
+  if(!S.ov){ ov.classList.remove('on'); ov.innerHTML=''; return; }
+  ov.innerHTML=map[S.ov](); ov.classList.add('on');
+}
+function ovOnb(){
+  const s=ONB[S.onb]; const last=S.onb===ONB.length-1;
+  return `<div class="sheet"><div class="note">新手引导 ${S.onb+1}/3</div><h3 style="margin-top:6px">${s[0]}</h3><p>${s[1]}</p>
+    <div class="btnrow"><button class="ghost" data-act="onbskip">跳过</button><span class="spacer"></span><button class="primary" data-act="onbnext">${last?'开始用':'下一步'}</button></div></div>`;
+}
+function ovHelp(){
+  return `<div class="sheet"><h3>快捷键</h3>
+    <table class="kt">
+      <tr><td><span class="kbd">← →</span></td><td>上一张 / 下一张（大图）</td></tr>
+      <tr><td><span class="kbd">Space</span></td><td>按住看原图，松开恢复（大图）</td></tr>
+      <tr><td><span class="kbd">C R A E</span></td><td>裁切 / 配方 / 调整 / 导出（大图）</td></tr>
+      <tr><td><span class="kbd">⌘ Z</span></td><td>撤销</td></tr>
+      <tr><td><span class="kbd">⌘ E</span></td><td>导出</td></tr>
+      <tr><td><span class="kbd">Esc</span></td><td>关闭弹窗；大图里返回图库</td></tr>
+      <tr><td><span class="kbd">?</span></td><td>显示这张表</td></tr>
+    </table>
+    <div class="btnrow"><button data-act="onbreplay">重看新手引导</button><span class="spacer"></span><button data-act="closeov">关闭</button></div></div>`;
+}
+function ovLut(){
+  if(!S.lut){
+    return `<div class="sheet"><h3>导入调色文件（.cube）</h3>
+      <p class="note">调色文件是别人调好的色彩对照表。电脑会把它换算成相机能用的配方，并告诉你有多接近。</p>
+      <div class="drop" data-act="lutload">把 .cube 文件拖到这里<br><span class="note">或点击选择文件（原型里点这里会载入示例文件）</span></div>
+      <div class="btnrow"><span class="spacer"></span><button data-act="closeov">取消</button></div></div>`;
+  }
+  const pick=S.lutBase||'05';
+  const c=SAMPLE_LUT_RESULT.find(x=>x[0]===pick)||SAMPLE_LUT_RESULT[0];
+  const band=c[2]>=95?['ok','很接近']:c[2]>=90?['warn','比较接近']:['bad','差别明显，先看看效果'];
+  const preview=`<div class="preview" style="filter:${S.lutPv?'sepia(.35) saturate(1.25) contrast(1.05)':'none'}"></div>`;
+  const head=`<h3>导入调色文件（.cube）</h3>
+    <div class="note">文件：warm-film.cube · 3D · 33×33×33</div>
+    <div class="btnrow" style="margin:6px 0"><button class="chip ${S.lutPv?'':'on'}" data-act="lutpv" data-v="0">原图</button><button class="chip ${S.lutPv?'on':''}" data-act="lutpv" data-v="1">加 LUT 后</button><span class="note">（占位示意）</span></div>${preview}`;
+  if(!S.lutResult){
+    return `<div class="sheet">${head}<div class="btnrow"><button class="primary" data-act="lutgo">做成相机配方</button><span class="spacer"></span><button data-act="lutreset">换一个文件</button></div></div>`;
+  }
+  return `<div class="sheet">${head}
+    <div class="result">
+      <div class="label">最接近的底子（点一个看看）</div>
+      <div class="chips">${SAMPLE_LUT_RESULT.map(x=>`<button class="chip ${x[0]===pick?'on':''}" data-act="lutpick" data-v="${x[0]}">${x[0]} ${x[1]}　${x[2]}%</button>`).join('')}</div>
+      <div style="margin-top:12px"><b>电脑预测相似度 ${c[2]}%</b>　<span class="pill ${band[0]}">${band[1]}</span></div>
+      <div class="simbar"><div style="width:${c[2]}%"></div></div>
+      <p class="note">这是电脑按一组标准色块比较得出的数字，相机实拍通常会低一些，以相机实测为准。</p>
+      <div class="label">与原调色文件的差别</div>
+      <ul class="note"><li>高光偏暖：相机没有对应的旋钮，只能近似</li><li>阴影稍提亮，对比略弱</li></ul>
+      <div class="label">配方名字</div>
+      <input type="text" id="lutname" value="我的 LUT 配方 ${S.myRecs.length+1}">
+      <div class="btnrow"><button class="primary" data-act="lutsave">存为我的配方</button><span class="spacer"></span><button data-act="lutreset">换一个文件</button></div>
+    </div></div>`;
+}
+function ovExport(){
+  const p=cur(); const dayN=p?list().filter(x=>x.day===p.day).length:0; const pickN=S.picked.length;
+  const scope=S.exp.scope;
+  const opts=[['one','这一张',1],['pick',`选中的 ${pickN} 张`,pickN],['day',`这一天的全部 ${dayN} 张`,dayN]];
+  const running=S.exp.prog>=0 && S.exp.prog<100;
+  const done=S.exp.prog>=100;
+  const sizes=[['orig','原始'],['3000','长边 3000'],['2048','长边 2048'],['1600','长边 1600']];
+  const n=(opts.find(o=>o[0]===scope)||opts[0])[2];
+  if(done){
+    return `<div class="sheet"><h3>导出完成</h3><p>导出完成：${n} 张 JPEG 已保存到「~/Pictures/GXR 导出」（演示）。</p>
+      <div class="btnrow"><button data-act="closeov">关闭</button><button data-act="openfolder">打开文件夹（演示）</button></div></div>`;
+  }
+  return `<div class="sheet"><h3>导出 JPEG</h3>
+    <div class="label">范围</div>
+    ${opts.map(o=>`<label class="opt"><input type="radio" name="scope" ${scope===o[0]?'checked':''} ${o[2]===0?'disabled':''} data-act="expscope" data-v="${o[0]}"> ${o[1]}${o[0]==='pick'&&!pickN?'（先在图库里勾选）':''}</label>`).join('')}
+    <div class="label">尺寸</div>
+    <div class="chips">${sizes.map(s=>`<button class="chip ${S.exp.size===s[0]?'on':''}" data-act="expsize" data-v="${s[0]}">${s[1]}</button>`).join('')}</div>
+    <div class="label">质量　<span class="kv" id="expq-v" style="display:inline">${S.exp.q}</span>（高 95 · 中 85 · 低 70）</div>
+    <input type="range" min="60" max="100" step="1" value="${S.exp.q}" data-f="expq">
+    <div class="label">存到</div>
+    <div class="note">~/Pictures/GXR 导出（原型示意，不能更换）</div>
+    <div class="note">文件名：原名加 _gxr；同名自动加 -2，不覆盖。</div>
+    ${running?`<div class="label">导出中 ${Math.min(100,S.exp.prog)}%</div><div class="simbar"><div style="width:${S.exp.prog}%"></div></div>`:''}
+    <div class="btnrow"><button data-act="closeov" ${running?'disabled':''}>取消</button><span class="spacer"></span><button class="primary" data-act="exprun" ${running?'disabled':''}>开始导出</button></div>
+  </div>`;
+}
+
+/* ---------- 动作 ---------- */
+const ACT={
+  view(v){ S.view=v; render(); },
+  day(v){ S.day=v||null; render(); },
+  open(v){ S.sel=v; S.view='viewer'; S.tab='crop'; S.compare=false; S.undo=[]; S.lastSnap=snapshot(); render(); },
+  pick(v){ S.picked=S.picked.includes(v)?S.picked.filter(x=>x!==v):[...S.picked,v]; render(); },
+  clearpick(){ S.picked=[]; render(); },
+  exportsel(){ S.exp.scope='pick'; S.exp.prog=-1; S.ov='export'; renderOv(); },
+  exportnow(){
+    if(!cur() && !S.picked.length) return toast('先选一张照片或勾选几张，再导出');
+    S.exp.scope=cur()&&S.view==='viewer'?'one':(S.picked.length?'pick':'one');
+    S.exp.prog=-1; S.ov='export'; renderOv();
+  },
+  exportopen(v){ S.exp.scope=v||'one'; S.exp.prog=-1; S.ov='export'; renderOv(); },
+  expscope(v){ S.exp.scope=v; renderOv(); },
+  expsize(v){ S.exp.size=v; render(); renderOv(); },
+  exprun(){
+    if(S.expT) clearInterval(S.expT);
+    S.exp.prog=0; renderOv();
+    S.expT=setInterval(()=>{ S.exp.prog+=6; if(S.exp.prog>=100){ S.exp.prog=100; clearInterval(S.expT); } renderOv(); },90);
+  },
+  openfolder(){ toast('（演示）这里会打开导出文件夹'); },
+  help(){ S.ov='help'; renderOv(); },
+  onbreplay(){ S.onb=0; S.ov='onb'; renderOv(); },
+  onbnext(){ if(S.onb>=ONB.length-1){ S.ov=null; renderOv(); } else { S.onb++; renderOv(); } },
+  onbskip(){ S.ov=null; renderOv(); },
+  closeov(){ S.ov=null; renderOv(); },
+  back(){ S.view='library'; render(); },
+  tab(v){ S.tab=v; render(); },
+  prev(){ move(-1); },
+  next(){ move(1); },
+  undo(){ undo(); },
+  revert(){
+    const p=cur(); if(!p) return;
+    p.crop={r:'orig',angle:0};
+    p.adj={exp:0,con:0,hi:0,sh:0,temp:0,tint:0,mx:100,my:100};
+    p.tweaks={};
+    commitSnap(); toast('已还原原图（可以用撤销找回）'); render();
+  },
+  ratio(v){ const p=cur(); p.crop.r=v; commitSnap(); render(); },
+  cropreset(){ const p=cur(); p.crop={r:'orig',angle:0}; commitSnap(); render(); },
+  cropdone(){ S.tab='recipe'; toast('裁切已记下（原图没有改动）'); render(); },
+  base(v){ const p=cur(); p.base=v; S.armZero=false; commitSnap(); render(); },
+  myapply(v){
+    const p=cur(); const r=S.myRecs[+v];
+    p.base=r.base; p.tweaks[r.base]=JSON.parse(JSON.stringify(r.tweaks));
+    commitSnap(); toast(`已套用「${r.name}」`); render();
+  },
+  zero(){
+    if(!S.armZero){ S.armZero=true; return render(); }
+    S.armZero=false;
+    const t=T(cur()); KN.forEach(k=>t[k.k]=0); t.amount=100;
+    commitSnap(); render();
+  },
+  saverec(){
+    const p=cur(); const name=prompt('给这个配方起个名字',`我的配方 ${S.myRecs.length+1}`);
+    if(!name) return;
+    S.myRecs.push({name,base:p.base,tweaks:JSON.parse(JSON.stringify(T(p)))});
+    toast('已存为我的配方'); render();
+  },
+  adjreset(){ const p=cur(); p.adj={exp:0,con:0,hi:0,sh:0,temp:0,tint:0,mx:100,my:100}; commitSnap(); render(); },
+  myrename(v){ const r=S.myRecs[+v]; const n=prompt('新名字',r.name); if(n){ r.name=n; render(); } },
+  mydel(v){ if(confirm(`删除「${S.myRecs[+v].name}」？`)){ S.myRecs.splice(+v,1); S.camSlot=0; render(); } },
+  gopick(){ S.view='library'; toast('点一张照片，就能在右侧调配方'); render(); },
+  lutopen(){ S.ov='lut'; S.lut=null; S.lutResult=false; S.lutPv=false; renderOv(); },
+  lutload(){ S.lut={name:'warm-film.cube'}; renderOv(); },
+  lutgo(){ S.lutResult=true; renderOv(); },
+  lutpv(v){ S.lutPv=v==='1'; renderOv(); },
+  lutpick(v){ S.lutBase=v; renderOv(); },
+  lutreset(){ S.lut=null; S.lutResult=false; renderOv(); },
+  lutsave(){
+    const nm=($('#lutname')||{}).value||'我的 LUT 配方';
+    S.myRecs.push({name:nm,base:S.lutBase,tweaks:{cont:1,high:-1,shad:2,fade:0,satu:-2,warm:0,tint:0,splt:0,filt:0,amount:100}});
+    S.ov=null; toast('已存为我的配方'); render(); renderOv();
+  },
+  dismiss(){ S.bannerOK=false; render(); },
+  cancelimp(){ cancelImport(); },
+  cardbtn(){
+    if(S.cardState==='none'||S.cardState==='ejected') return insertCard();
+    if(S.cardState==='ready') return ejectCard();
+  },
+  camslot(v){ S.camSlot=+v; render(); },
+  consent(){ S.consent=!S.consent; render(); },
+  camwrite(){
+    if(S.camT) clearInterval(S.camT);
+    S.camRes=''; S.camPrg=0; render();
+    S.camT=setInterval(()=>{
+      S.camPrg+=8;
+      if(S.camPrg>=100){ clearInterval(S.camT); S.camPrg=-1; S.camRes='✓ 写入并回读校验通过（演示：没有真的写卡）。请先安全弹出，再放回相机，关机再开机才生效。'; }
+      render();
+    },120);
+  }
+};
+function move(d){
+  const L=list(); const i=L.indexOf(cur()); const j=i+d;
+  if(j<0||j>=L.length) return;
+  S.sel=L[j].id; S.compare=false; S.undo=[]; S.lastSnap=snapshot(); render();
+}
+
+/* ---------- 事件 ---------- */
+document.addEventListener('click',e=>{
+  if(e.target.id==='ov'){ S.ov=null; renderOv(); return; }
+  const el=e.target.closest('[data-act]');
+  if(!el||el.disabled) return;
+  const fn=ACT[el.dataset.act];
+  if(fn) fn(el.dataset.v);
+});
+document.addEventListener('input',e=>{
+  const t=e.target; const f=t.dataset.f; if(!f) return;
+  if(f==='knob'){
+    const v=Number(t.value); T(cur())[t.dataset.k]=v;
+    const def=KN.find(k=>k.k===t.dataset.k);
+    $('#kv-'+t.dataset.k).textContent=def.min<0?sgn(v):String(v);
+  } else if(f==='amount'){
+    const v=Number(t.value); T(cur()).amount=v; $('#kv-amount').textContent=v+'%';
+  } else if(f==='angle'){
+    const v=Number(t.value); cur().crop.angle=v; $('#angv').textContent=sgn(v.toFixed(1))+'°';
+  } else if(f==='adj'){
+    const k=t.dataset.k; const v=Number(t.value); cur().adj[k]=v;
+    const el=$('#kv-adj-'+k);
+    if(el) el.textContent = k==='exp' ? (v>0?'+':'')+v.toFixed(1)+' EV' : sgn(v);
+  } else if(f==='expq'){
+    S.exp.q=Number(t.value); $('#expq-v').textContent=S.exp.q;
+  }
+  if(f!=='expq') paintPreview();
+});
+document.addEventListener('change',e=>{
+  const f=e.target.dataset.f;
+  if(f && f!=='expq' && cur()) commitSnap();
+  if(f==='expq'){ /* 只记在状态里 */ }
+});
+/* 曲线拖动 */
+document.addEventListener('pointerdown',e=>{
+  if(e.target.id==='chandle'){ S.drag=true; S.lastSnap=S.lastSnap||snapshot(); }
+});
+document.addEventListener('pointermove',e=>{
+  if(!S.drag) return;
+  const svg=$('#curve'); if(!svg||!cur()) return;
+  const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY;
+  const q=pt.matrixTransform(svg.getScreenCTM().inverse());
+  const a=cur().adj;
+  a.mx=Math.max(0,Math.min(200,q.x)); a.my=Math.max(0,Math.min(200,q.y));
+  $('#cpath').setAttribute('d',curvePath(a));
+  const h=$('#chandle'); h.setAttribute('cx',a.mx); h.setAttribute('cy',a.my);
+  paintPreview();
+});
+document.addEventListener('pointerup',()=>{
+  if(!S.drag) return;
+  S.drag=false; commitSnap();
+});
+/* 键盘 */
+document.addEventListener('keydown',e=>{
+  if(e.target.matches && e.target.matches('input[type=text]')) return;
+  if(e.key==='Escape'){
+    if(S.ov){ S.ov=null; renderOv(); }
+    else if(S.view==='viewer'){ S.view='library'; render(); }
+    return;
+  }
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'){ e.preventDefault(); if(!S.ov) undo(); return; }
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='e'){ e.preventDefault(); ACT.exportnow(); return; }
+  if(S.ov) return;
+  if(e.key==='?'){ ACT.help(); return; }
+  if(S.view!=='viewer') return;
+  if(e.key==='ArrowLeft'){ e.preventDefault(); move(-1); return; }
+  if(e.key==='ArrowRight'){ e.preventDefault(); move(1); return; }
+  if(e.key===' '){ e.preventDefault(); if(!S.compare){ S.compare=true; paintPreview(); const tp=document.querySelector('.topline'); if(tp&&!tp.querySelector('.pill.warn')) tp.insertAdjacentHTML('beforeend','<span class="pill warn">看原图中</span>'); } return; }
+  const m={c:'crop',r:'recipe',a:'adjust',e:'export'}[e.key.toLowerCase()];
+  if(m && !e.metaKey && !e.ctrlKey){ S.tab=m; render(); }
+});
+document.addEventListener('keyup',e=>{
+  if(e.key===' ' && S.compare){ S.compare=false; render(); }
+});
+
+render();
+</script>
+</body>
+</html>

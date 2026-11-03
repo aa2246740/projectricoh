@@ -1,0 +1,17 @@
+time_utc	decision	reason	evidence	result
+2026-10-28T16:24:00Z	封存起始源码和两份旧清单	保留 M2 历史身份	local/initial-state.json	26 项工具和 448 项研究 SHA 全部匹配
+2026-10-28T16:25:00Z	补显式时钟控制字锁存	原厂读改写触及未映射时钟寄存器	local/clock-gates-r1.json	下一缺口为 0xff700008
+2026-10-28T16:25:30Z	保留旧检查点新增寄存器的零复位值	旧设备状态没有新增键	local/clock-gates-r2.json	修正模型恢复后的访问边界
+2026-10-28T16:27:00Z	继续原厂 NAND 扫描	Task 6 栈和块号持续前进	local/clock-gates-r3.json	300 万步只用于有界观察
+2026-10-28T16:29:00Z	单元就绪绑定 userdata 完成握手	消除人工选择等待点的时机	local/cold-pilot-r1-command.json	完整 MAIN 复跑中
+2026-10-28T16:35:00Z	保留 ADC1 为零的显式配置	原厂阈值比较与零工厂数据匹配	local/code-20065e10-3b0.txt	不将合成代码解释成实测电压
+2026-10-28T17:16:00Z	修正旧报告的全零工厂参数表述	选中电源来源的两个阈值为零，其余字段非零	local/factory-thresholds-r1.json; local/adc-zero-r2.json; local/adc-nonzero-r2.json	ADC1 零值走继续分支，非零走关机分支
+2026-10-28T17:16:01Z	按 HID 描述符建立面板空闲电平	旧串口零输入把维护键 12 判为按下	local/hid-descriptors.json; local/panel-idle-r1.json; local/cold-panel-r1.json	原厂键读取返回 0，保留旧维护路径和空指针故障
+2026-10-28T17:16:02Z	限制 MX 启动回应为两个明确请求	Task 1 等待 IRQ 104/105 才能继续组件初始化	local/mx-entry-r2.json; local/components-r1.json	原厂 IRQ 处理函数设置事件，宿主不写 RTOS 标志
+2026-10-28T17:16:03Z	按原厂描述符扩大 RAM 地址范围	图形分配和网络池使用两种总线地址	local/components-r11.json; local/components-r27.json; local/code-20380c00-270.txt	映射 128 MiB 软件范围和共享 backing 别名，不声称实测 RAM 大小
+2026-10-28T17:34:00Z	补 SIO2 发送控制器而不提供外设 RX	原厂 Task 23 检查 TX 状态后才能等待完成	local/ui-progress-r1.json; local/ui-progress-r2.json	Task 8 原厂入口首次执行于第 22670449 步
+2026-10-28T17:34:01Z	I2C 完成 IRQ 保持到上次服务退出	同一 IRQ 在服务期间的新边沿会被现有控制器合并	local/ui-progress-r5.json; local/ui-progress-r9.json	修正设备侧中断保持，不写 RTOS 对象
+2026-10-28T17:34:02Z	只增加 SD/ASIO/USB 启动配置锁存	Task 8/23/10 原厂启动触及对应控制字	local/ui-progress-r5.json; local/ui-progress-r6.json; local/ui-progress-r7.json	无 SD 介质、音频或 USB 主机输入；后续传输仍须单独建模
+2026-10-28T18:08:00Z	将诊断就绪报文默认关闭	三个位由机身 Task 8/9/10 的原厂初始化产生，外部 unit-ready 假设不成立	local/startup-bus-final-r7.json	最终 MAIN 验收要求三个真实任务来源，且不启用诊断报文或 idle 快进
+2026-10-28T18:08:01Z	对齐 I2C 调用长度与控制器字节数	一字节调用在 0x200da254/258 被扩成两字节	local/i2c-byte-census-r1.json	声明 41/42、42/43、96/97、a1/a2 读取对的零复位功能初态，保留其余读取边界
+2026-10-28T18:08:02Z	分开发送 FIFO 与 IRQ 待处理状态	完成 IRQ 仍在服务时 FIFO 也能变空	local/bus-checks-delivery.json	设备模型保留 IRQ，原厂 ISR 可以读取就绪状态；无 RTOS 状态改写

@@ -1,0 +1,43 @@
+"""Append the review decisions with pointers to their actual evidence."""
+import csv
+from datetime import datetime, timezone
+import json
+from pathlib import Path
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from scope_guard import HERE, enable
+
+def main():
+    enable(create_tmp=False)
+    rows=[
+        ('start','独立复审 A 与可选 B，写入限制为本目录和指定 TMPDIR','用户指定离线只读复审且禁止子代理','prepare.py; fence.sb; scope_guard.py','本轮无委派'),
+        ('execution','保留最初并发提交六个只读查询的偏差','它超过两进程提交限制，不能宣称全程无偏差','REVIEW.md 输入、执行与清理','后续工作负载串行'),
+        ('inputs','绑定 A/B 库及冻结执行输入','结论须对应确切工件字节','local/implementation-manifest.json; local/inputs-before.json','39127 项清单与 804 项冻结输入通过'),
+        ('bindings','原接收对象反例关闭，A 仍不放行','19 项原用例一致，两个新增父类替换用例产生差异','local/new-summary.json; local/independent-summary.json; local/extended-summary.json','P1-03 阻断 A'),
+        ('api','用真实旧库检查 API 版本门槛','应区分因 API 拒绝与因错误源码身份拒绝','local/api-summary.json','API 3 被明确拒绝，API 4 可加载'),
+        ('cache','原缓存环境缺陷已修，fork 用例明确标记响应夹具','真实 14/15 编译证明换键；fork 阶段不新增工具子进程','local/cache-summary.json; local/cache-fork-summary.json','原环境用例一致，fork 子进程命中真实 15.0 库'),
+        ('setup','初版 fork 驱动未形成结果，不算通过','主进程退出码不能代替完整采集收据','local/cache-fork-started.json; local/initial-runner-copies/cache_fork.py','采集不完整，保留原始版本'),
+        ('setup','初版 view 与既存 tape 比较路径错误均保留','驱动准备失败不能改记为通过','local/view-python.log; local/stored-audit.log; local/initial-runner-copies/','修正后以新名称重跑'),
+        ('fixed','固定 50mm 的 189 个值与真实步数、op 数一致','固定产品路径需要独立对照','local/fixed-comparison.json','27322942 包与 42299447 个 op 相同'),
+        ('audit','B 范围与回退样本通过，当前 B 仍不合并','B 继承同一父类方法保护缺口','local/boundary-summary.json; local/b-binding/local/new-summary.json','38 项一致，P1-03 阻断 B'),
+        ('audit','既存全套审计 tape 独立解析并逐字节比较','验收 JSON 不能替代实际事件证明','local/stored-audit-comparison.json','71 文件 994 事件相同，993 事件变异被拒绝'),
+        ('view','保留第一次未开启审计过滤的 B 作为明确对照，再显式开启','默认开关为 0，必须确认优化路径实际被执行','local/view-b/summary.json; local/view-b-on/summary.json','B 开关 0/1 都完成 28 子进程'),
+        ('view','Python、A、B 开关 0/1 的子集输出与审计事件相同','覆盖实际 fork、影子调用与全空间审计','local/view-a-comparison.json; local/view-b-off-comparison.json; local/view-b-comparison.json','每侧 29 JSON 的 121083 值及 616 事件相同'),
+        ('verification','用独立汇总脚本逐项检查原始结果','采集退出码 0 不等于后端等价','final_checks.py; local/final-summary.json','A/B 都不放行；反例保持 equal=false'),
+        ('inputs','交付前复核输入身份','确认并发工作未改变本轮已执行对象','local/inputs-after.json','执行输入与实现清单复核通过'),
+        ('cleanup','删除指定临时目录并检查遗留进程','只清理本轮明确拥有的临时目录','local/cleanup.json','等待实际清理收据，封存前核实'),
+    ]
+    path=HERE/'decisions.tsv'
+    with path.open(newline='') as stream:
+        existing=list(csv.DictReader(stream,delimiter='\t'))
+    known={(r['phase'],r['decision']) for r in existing}
+    with path.open('a',newline='') as stream:
+        writer=csv.writer(stream,delimiter='\t',lineterminator='\n')
+        for phase,decision,why,evidence,result in rows:
+            if (phase,decision) in known:continue
+            if phase=='cleanup':
+                actual=json.loads((HERE/'local/cleanup.json').read_text())
+                assert actual['passed'];result='实际清理收据通过，无遗留工作进程'
+            writer.writerow([datetime.now(timezone.utc).isoformat(),phase,decision,why,evidence,result])
+
+if __name__=='__main__':main()

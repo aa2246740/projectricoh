@@ -1,0 +1,10 @@
+ts	phase	decision	why	evidence	result
+2026-11-03T05:44:46Z	start	接续任务，先前证据覆盖 2026-11-02 至 2026-11-03 05:32 UTC	上下文压缩后保留原证据，按新增 P1 和顺延截止继续	research/tweak_memory_r1/evidence/p1-before-archive.json	旧运行只作基线
+2026-11-03T05:44:46Z	mode	归档旧 DAT、ELF、源码与布局后停止旧 release 冷启动	最终 release 必须关闭 BOOT，新模式规则改变 test SHA	research/tweak_memory_r1/evidence/p1-before-archive.json	07:28:28 UTC 截止
+2026-11-03T05:53:58Z	mode	只允许选择字 0x8001、实际模式 0 且 MY/pending 均为零	实际冷启动的原厂分支在 C/Python 上均写 MY=0 和 mode=0，其余选择尚未确认	research/tweak_memory_r1/evidence/final-native-mode-proof.json	PASS，test 新 SHA 已冻结
+2026-11-03T05:53:58Z	artifact	release 关闭 BOOT，两个最终 DAT 经 Studio 完整字节往返	按增量复审清单恢复发布开关并核对新 DAT 布局	research/tweak_memory_r1/evidence/final-increment-static.json	76 个冻结文件无变化，28 个伴随文件一致
+2026-11-03T06:24:23Z	manual	最终 test 的 HC BW 三项 +1 与用户 Cont +2 均由实际 UI 写入	旧 SHA 不能替代新 DAT 的手动记录和完整目标证据	research/tweak_memory_r1/evidence/p1final-mount-manual-accept.json,research/tweak_memory_r1/evidence/p1final-user-manual-accept.json	完整 552 B、九行/T/S、40 B 和 DAT 配对通过
+2026-11-03T06:42:29Z	contract	将 RTOS trap 边界与 DAT 拒收门分开验收	纯指令后端 C/Python 均在 0x0500C6F0 trap 停止；完整模拟器执行事务，纯指令后端复放实际纯 04 门	research/tweak_memory_r1/evidence/final-transaction-refusals.json	六个完整事务拒收、四次纯 04 门复放 PASS
+2026-11-03T07:00:53Z	guard	最终 DAT 的两次 W 错误应答后固定字为 14，HALF/FULL 均被 H52 取消	同时验证应用和补偿失败，保持原厂保护直到新冷启动	research/tweak_memory_r1/evidence/final-guard-check.json	PASS；移走 DAT 的新 MAIN 两键均续接原厂 C01
+2026-11-03T07:00:53Z	record	实际 op 5 只替换 40 B；未知尾部返回冲突且整块不改	确认完整记录与相邻字节的边界，RTOS 用完整原模拟器执行	research/tweak_memory_r1/evidence/final-record-store.json	两个事务、四次 C/Python 分类复放 PASS
+2026-11-03T07:19:38.605253+00:00	close	按最终 SHA 汇总，未完成项保留 OPEN	真实 NAND 未保存成功，不能以声明回放代替	evidence/final-matrix.json,evidence/cleanup-final.json	有缺陷；私有临时目录已清理，残留为 0

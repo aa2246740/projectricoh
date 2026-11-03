@@ -1,0 +1,9 @@
+Generation 141. Peaking probe P1 DAT for the v3.8 body (resident build id 79d8e2a2...). Host review candidate.
+Copy of engine_diag_v37 with the diagnostic replaced by the probe. Live files:
+  build_probe.py                 build and pack (run with TMPDIR=/Volumes/Workspace/Scratch/tmp/projectricoh/probe-p1)
+  candidate/common.py, candidate/service_build.py
+  candidate/engine_services/     pruned service profile: UI list/text and the fixed P1 unit transactions
+  candidate/containers/product/  probe.c, build.py, pack.py, pack_v1.py, runtime.py, engine.ld, src/.../eng_mem.c
+  resident/                      v3.8 sources compiled into the DAT (shared.c, resident.h, abi.h, gxrce.h, runtime.c)
+Everything else is carried over from engine_diag_v37 unchanged and is not used by this build.
+Acceptance and the compiled-code check: research/peaking_probe_dat. Package: firmware/package_v38_probe_p1.

@@ -1,0 +1,10 @@
+/pages/*
+!/pages/00_white.png
+!/pages/01_chart.png
+!/pages/02_chart.png
+!/pages/03_chart.png
+!/pages/04_chart.png
+!/pages/05_chart.png
+!/pages/06_chart.png
+/local/
+__pycache__/

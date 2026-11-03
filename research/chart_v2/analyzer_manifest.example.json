@@ -1,0 +1,10 @@
+{
+  "schema": "chart-v2-manifest/1",
+  "ranges": [
+    {"first": "R8051300", "last": "R8051318", "unit": "a12-50", "shoot_list": true},
+    {"first": "R8051319", "last": "R8051327", "unit": "a12-28", "shoot_list": true},
+    {"first": "R8051328", "last": "R8051336", "unit": "mount-a12", "shoot_list": true}
+  ],
+  "exclude": [],
+  "frames": {}
+}

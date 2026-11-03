@@ -1,0 +1,12 @@
+decision	why	evidence	result
+封存 M1a 适配层再扩展设备	需要可复跑的负对照	local/m1a-sources.zip; local/initial-inputs.json; local/m1a-reproduced.json	原故障精确复现
+cache 采用有边界的控制字锁存	原厂描述符指向 FFFFFFC0，访问加八和 FC	local/m2-checks.json	原厂初始化返回；未知 D0 仍故障
+IRQ 推迟到四字节边界	GNU 单步右半槽加中断会重放左半槽	local/irq-half-baseline.json; local/conformance-current.txt	右半槽和强制 IRQ 回归通过
+补足 RTE 栈银行交换	GNU RTE 的 PSW setter 与 MVTC 语义不一致	local/m2-checks.json	IRQ 内快照和双栈回归通过
+tick 使用原厂 IRQ 65	IRQ 49 不写原厂 tick 变量	local/timer65.json; local/m2-checks.json	原厂 IRQ 写 200D183C，等待可到期
+设备输入全部显式记录	擦除 NAND 和默认 ADC 会选择异常启动分支	local/m2-cold-erased.json; local/m2-power-input.json; local/fixtures-current.stdout.txt	合成参数与物理输入分开
+不把分段检查点续跑当完整启动	旧检查点含先前设备模型的时钟和返回历史	local/task1-state-comparison.json; local/final-cold.json	最终另从 MAIN 运行
+复用冻结的 RpcEdge	维持与 native_harness 的 X/V/W 语义一致	local/native-rpc8.json	8 个原厂机身 RPC 用例通过
+DMA 按已观察三元组建模	通用成功桩会绕过原厂校验和完成回调	local/m2-checks.json	有效与坏校验和给出不同原厂结果
+单向通知只记未实现动作	需要推进机身逻辑但没有镜头行为证据	local/final-cold.json	请求留痕；不报告镜头动作成功
+两个清单使用各自要求的路径基准	避免工具局部路径和仓库根路径混用	replay.py	工具目录相对；研究清单仓库根相对

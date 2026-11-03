@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>GXR Studio · 显卡预览原型</title>
+<style>
+  :root { color-scheme: dark; --bg: #161618; --panel: #1f1f22; --line: #2c2c30; --text: #e8e8ea; --dim: #9a9aa0; --acc: #4c8dff; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.4 -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif; }
+  .app { display: grid; grid-template-columns: 1fr 300px; grid-template-rows: 1fr 64px; height: 100%; }
+  #stage { grid-row: 1; grid-column: 1; width: 100%; height: 100%; display: block; }
+  aside { grid-row: 1 / span 2; grid-column: 2; background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; padding: 12px 14px; }
+  .strip { grid-row: 2; grid-column: 1; display: flex; gap: 6px; align-items: center; padding: 0 12px; border-top: 1px solid var(--line); overflow-x: auto; }
+  h3 { font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--dim); margin: 14px 0 6px; text-transform: uppercase; }
+  .row { margin: 8px 0; }
+  .row .lab { display: flex; justify-content: space-between; color: var(--dim); }
+  .row output { color: var(--text); font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: var(--acc); }
+  .seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  button { background: #2a2a2e; color: var(--text); border: 1px solid #36363b; border-radius: 6px; padding: 5px 8px; font: inherit; cursor: pointer; }
+  button[aria-pressed=true] { background: var(--acc); border-color: var(--acc); color: #fff; }
+  select { width: 100%; background: #2a2a2e; color: var(--text); border: 1px solid #36363b; border-radius: 6px; padding: 5px; font: inherit; }
+  #hud { position: absolute; left: 12px; top: 10px; color: var(--dim); font: 11px ui-monospace, Menlo, monospace; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <canvas id="stage"></canvas>
+  <div class="strip" id="strip"></div>
+  <aside id="side"></aside>
+</div>
+<div id="hud"></div>
+<script type="module">
+import { Engine } from './engine.js';
+
+const RECIPES = ['GR 正片', 'GR 负片', '高反差黑白', '标准', '富士 CC', '富士 CN', '徕卡 Chrome', '徕卡 Vivid'];
+const SLIDERS = [
+  ['exposure_ev', '曝光', -5, 5, 0.1], ['warm', '色温', -100, 100, 1], ['tint', '色调', -100, 100, 1],
+  ['contrast', '对比度', -100, 100, 1], ['highlight', '高光', -100, 100, 1], ['shadow', '阴影', -100, 100, 1],
+  ['black_point', '黑点', -100, 100, 1], ['saturation', '饱和度', -100, 100, 1], ['vibrance', '自然饱和度', -100, 100, 1], ['vignette', '暗角', -100, 100, 1],
+];
+// ?gl=1：WebGL2 退路（同一套算法的 GLSL 版）
+const eng = new URLSearchParams(location.search).has('gl') ? new (await import('./engine_gl.js')).EngineGL() : new Engine();
+const canvas = document.getElementById('stage');
+const hud = document.getElementById('hud');
+const state = { adjust: {}, photo: null, index: null };
+const M = window.__m = { inputs: [], frames: [], rafs: [], recording: false };
+
+function adjustBody() {
+  const a = state.adjust, out = {};
+  for (const k of ['exposure_ev', 'contrast', 'highlight', 'shadow', 'black_point', 'saturation', 'vibrance', 'vignette']) if (a[k]) out[k] = a[k];
+  if (a.warm || a.tint) out.wb = { warm: a.warm || 0, tint: a.tint || 0 };
+  return out;
+}
+
+// 只更新数值，不重建面板：拖动时页面上别的东西都不动
+function slider(key, label, min, max, step, value, onInput) {
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = `<div class="lab"><span>${label}</span><output>${value}</output></div>`;
+  const input = Object.assign(document.createElement('input'), { type: 'range', min, max, step, value });
+  input.setAttribute('aria-label', label);
+  const out = row.querySelector('output');
+  input.addEventListener('input', () => {
+    const v = Number(input.value);
+    out.textContent = step < 1 ? v.toFixed(1) : String(v);
+    if (M.recording) M.inputs.push({ t: performance.now(), v, label });
+    onInput(v);
+  });
+  input.addEventListener('dblclick', () => { input.value = 0; input.dispatchEvent(new Event('input')); });
+  row.append(input);
+  return row;
+}
+
+function seg(items, current, onPick) {
+  const box = document.createElement('div');
+  box.className = 'seg';
+  const bs = items.map(([id, text]) => {
+    const b = Object.assign(document.createElement('button'), { type: 'button', textContent: text });
+    b.setAttribute('aria-pressed', String(id === current));
+    b.addEventListener('click', () => { bs.forEach((x) => x.setAttribute('aria-pressed', String(x === b))); onPick(id); });
+    return b;
+  });
+  box.append(...bs);
+  return box;
+}
+
+function buildPanel() {
+  const side = document.getElementById('side');
+  const h = (t) => Object.assign(document.createElement('h3'), { textContent: t });
+  side.append(h('配方'), seg(RECIPES.map((n, i) => [i + 1, String(i + 1).padStart(2, '0')]), 1, (s) => eng.set({ recipe: s })));
+  const lutSel = document.createElement('select');
+  lutSel.innerHTML = `<option value="">无 LUT</option>` + state.index.luts.map((l) => `<option value="${l.name}">${l.name}（${l.input_space}）</option>`).join('');
+  lutSel.addEventListener('change', async () => { if (lutSel.value) await eng.loadLut(state.index.luts.find((l) => l.name === lutSel.value)); eng.set({ lut: lutSel.value || null }); });
+  side.append(h('LUT'), lutSel, slider('lut', 'LUT 强度', 0, 100, 1, 100, (v) => eng.set({ lutStrength: v / 100 })));
+  side.append(h('调整'));
+  for (const [k, label, min, max, step] of SLIDERS) side.append(slider(k, label, min, max, step, 0, (v) => { state.adjust[k] = v; eng.set({ adjust: adjustBody() }); }));
+  side.append(h('曲线'), seg([[0, '直线'], [1, 'S 形'], [2, '褪色']], 0, (c) => eng.set({ curve: [null, [[0, 0], [64, 48], [128, 128], [192, 210], [255, 255]], [[0, 24], [128, 124], [255, 238]]][c] })));
+  side.append(h('几何'), slider('straighten', '拉直', -45, 45, 0.1, 0, (v) => eng.set({ straighten: v })));
+  side.append(seg([[0, '原比例'], [1, '3:2 内裁'], [2, '65:24']], 0, (c) => eng.set({ crop: [null, [0.1, 0.08, 0.8, 0.84], [0.0, 0.2, 1.0, 0.36]][c] })));
+}
+
+function buildStrip() {
+  const strip = document.getElementById('strip');
+  for (const p of state.index.photos) {
+    const b = Object.assign(document.createElement('button'), { type: 'button', textContent: `${p.name} · ${p.unit === 'jlaunch' ? '50mm' : 'MOUNT'}` });
+    b.addEventListener('click', () => window.__open(p.name));
+    strip.append(b);
+  }
+}
+
+// 帧循环：只有参数变了才画；记录 rAF 间隔和每帧的 CPU/GPU 完成时刻
+function loop(ts) {
+  if (M.recording) M.rafs.push(ts);
+  const pending = M.recording ? M.inputs.filter((i) => !i.frame) : [];
+  const f = eng.frame();
+  if (f && M.recording) {
+    const rec = { raf: ts, start: performance.now() - f.cpu, cpu: f.cpu, color: f.color, inputs: pending.length };
+    pending.forEach((i) => { i.frame = rec; });
+    M.frames.push(rec);
+    eng.device.queue.onSubmittedWorkDone().then(() => { rec.gpuDone = performance.now(); requestAnimationFrame((t2) => { rec.nextRaf = t2; rec.nextRafNow = performance.now(); }); });
+  }
+  hud.textContent = state.photo ? `${state.photo} · ${eng.info.description || eng.info.vendor || ''}` : '';
+  requestAnimationFrame(loop);
+}
+
+window.__open = async (name, mode = 'proxy') => {
+  const t0 = performance.now();
+  const r = await eng.loadPhoto(name, mode);
+  const tLoaded = performance.now();
+  eng.show(name);
+  state.photo = name;
+  const shown = await new Promise((res) => requestAnimationFrame(() => { eng.frame(); eng.device.queue.onSubmittedWorkDone().then(() => requestAnimationFrame((t) => res(performance.now()))); }));
+  return { name, mode, cached: r.cached, ms: r.ms, load_ms: tLoaded - t0, to_first_frame_ms: shown - t0 };
+};
+
+window.__applySet = async (ps) => {
+  if (ps.lut) await eng.loadLut(state.index.luts.find((l) => l.name === ps.lut));
+  const a = ps.adjust || {};
+  eng.set({ recipe: ps.recipe || 4, lut: ps.lut || null, lutStrength: 1, curve: ps.curve || null, straighten: ps.straighten || 0, crop: ps.crop || null, adjust: a });
+};
+
+window.__readback = async (name, ps, mode = 'proxy') => {
+  await window.__open(name, mode);
+  await window.__applySet(ps);
+  const t0 = performance.now();
+  const r = await eng.readback();
+  const ms = performance.now() - t0;
+  const res = await fetch(`/upload/${name}__${ps.id}__${mode === 'raw' ? 'rawgpu__' : ''}${r.w}x${r.h}.rgba`, { method: 'POST', body: r.data });
+  return { w: r.w, h: r.h, readback_ms: ms, upload: res.status };
+};
+
+window.__export = async (name, ps) => {
+  await window.__applySet(ps);
+  const r = await eng.exportFull(name);
+  await fetch(`/upload/${name}__${ps.id}__full__${r.w}x${r.h}.rgba`, { method: 'POST', body: r.rgba });
+  return { w: r.w, h: r.h, ms: r.ms, jpegBytes: r.jpegBytes };
+};
+
+// 截图用：把一组参数同时反映到面板上（只改显示，不触发重画以外的事）
+window.__syncUi = (ps) => {
+  const a = ps.adjust || {};
+  const vals = { '曝光': a.exposure_ev, '色温': a.wb?.warm, '色调': a.wb?.tint, '对比度': a.contrast, '高光': a.highlight, '阴影': a.shadow, '黑点': a.black_point, '饱和度': a.saturation, '自然饱和度': a.vibrance, '暗角': a.vignette, '拉直': ps.straighten };
+  for (const el of document.querySelectorAll('input[type=range]')) {
+    const v = vals[el.getAttribute('aria-label')];
+    if (v === undefined) continue;
+    el.value = v || 0;
+    el.parentElement.querySelector('output').textContent = String(v || 0);
+  }
+  const btns = [...document.querySelectorAll('.seg')[0].children];
+  btns.forEach((b, i) => b.setAttribute('aria-pressed', String(i + 1 === (ps.recipe || 4))));
+  if (ps.lut) document.querySelector('select').value = ps.lut;
+};
+window.__bench = async (n, W, H) => eng.benchGpu(n, W, H);
+window.__reset = () => { state.adjust = {}; eng.set({ adjust: {}, curve: null, recipe: 1, lut: null, lutStrength: 1, straighten: 0, crop: null }); };
+window.__eng = eng;
+
+window.__ready = (async () => {
+  const info = await eng.init(canvas);
+  state.index = await (await fetch('/data/index.json')).json();
+  buildPanel();
+  buildStrip();
+  requestAnimationFrame(loop);
+  await window.__open(state.index.photos[0].name);
+  return { info, pipeline_ms: eng.pipelineMs, format: eng.format };
+})();
+</script>
+</body>
+</html>

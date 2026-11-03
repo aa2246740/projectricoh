@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  .viz-root {
+    --ink: var(--foreground, #0b0b0b);
+    --ink-2: var(--muted-foreground, #52514e);
+    --hair: var(--border, rgba(11,11,11,0.10));
+    --surface: var(--background, #fcfcfb);
+    --bar: #2a78d6;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --before: #898781;
+    --row-hover: rgba(42,120,214,0.07);
+    --good: #0ca30c;
+    --warn: #fab219;
+    --serious: #ec835a;
+    font-family: var(--font-sans, system-ui, -apple-system, "Segoe UI", sans-serif);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .viz-root[data-theme="dark"] {
+    --bar: #3987e5;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --row-hover: rgba(57,135,229,0.13);
+  }
+  .viz-root h2 { font-size: 16px; font-weight: 600; margin: 30px 0 6px; }
+  .viz-root p { margin: 0 0 8px; }
+  .viz-root ul, .viz-root ol { margin: 4px 0 8px; padding-left: 20px; }
+  .viz-root li { margin: 3px 0; }
+  .lead { font-size: 15px; }
+  .small { font-size: 13px; color: var(--ink-2); }
+
+  .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 14px; }
+  .status { border: 1px solid var(--hair); border-radius: var(--radius, 10px); padding: 16px; }
+  .status h3 { font-size: 15px; font-weight: 600; margin: 10px 0 6px; }
+  .status p { font-size: 13.5px; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; }
+  .ico { width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center; flex: none; font-size: 11px; font-weight: 700; line-height: 1; }
+  [data-level="good"] .ico, .m.ok::before { background: var(--good); color: #fff; }
+  [data-level="warn"] .ico, .m.unk::before { background: var(--warn); color: #0b0b0b; }
+  [data-level="serious"] .ico, .m.bad::before { background: var(--serious); color: #fff; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); margin: 10px 0 4px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { display: inline-block; width: 18px; height: 10px; border-radius: 0 3px 3px 0; background: var(--bar); }
+  .sw.light { opacity: 0.35; }
+  .sw.tick { width: 3px; height: 14px; border-radius: 2px; background: var(--before); }
+  .sw.target { width: 2px; height: 14px; border-radius: 0; background: var(--ink-2); }
+
+  figure.panel { margin: 14px 0 0; }
+  figure.panel figcaption { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  figure.panel figcaption .small { font-weight: 400; margin-left: 6px; }
+  .chart { position: relative; }
+  .chart svg { display: block; overflow: visible; }
+  .chart text { font-family: inherit; }
+  .chart .label { font-size: 13px; fill: var(--ink); }
+  .chart .value { font-size: 13px; fill: var(--ink); font-variant-numeric: tabular-nums; font-weight: 600; }
+  .chart .kind { font-size: 11.5px; fill: var(--ink-2); font-weight: 400; }
+  .chart .tick { font-size: 11px; fill: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .chart .target { font-size: 11px; fill: var(--ink-2); font-weight: 600; }
+  .chart .hit { fill: transparent; }
+  .chart .row { outline: none; cursor: default; }
+  .chart .row:hover .hit, .chart .row:focus .hit { fill: var(--row-hover); }
+  .chart .row:focus-visible .hit { stroke: var(--bar); stroke-width: 1; }
+  .tip { position: absolute; pointer-events: none; opacity: 0; transition: opacity .12s; z-index: 2;
+         background: var(--popover, var(--card, #fff)); color: var(--popover-foreground, var(--ink));
+         border: 1px solid var(--hair); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; line-height: 1.55;
+         box-shadow: 0 4px 16px rgba(0,0,0,0.12); width: 230px; }
+  .tip b { font-weight: 600; }
+  .tip .dim { color: var(--ink-2); }
+
+  details { margin-top: 10px; }
+  summary { cursor: pointer; font-size: 13px; color: var(--ink-2); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  th { font-weight: 600; color: var(--ink-2); font-size: 12.5px; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .table-wrap { overflow-x: auto; }
+
+  .matrix td:first-child { width: 38%; }
+  .matrix tr.grp td { font-weight: 600; padding-top: 14px; border-bottom: none; color: var(--ink); }
+  .m { display: inline-flex; align-items: flex-start; gap: 6px; }
+  .m::before { flex: none; width: 16px; height: 16px; border-radius: 50%; display: inline-grid; place-items: center;
+               font-size: 10px; font-weight: 700; line-height: 1; margin-top: 2px; }
+  .m.ok::before { content: "✓"; }
+  .m.unk::before { content: "?"; }
+  .m.bad::before { content: "!"; }
+  .m.no::before { content: ""; border: 1.5px solid var(--before); width: 13px; height: 13px; }
+  .m.no { color: var(--ink-2); }
+  .m.na { color: var(--ink-2); }
+
+  .timeline { list-style: none; padding-left: 0; margin: 6px 0; }
+  .timeline li { display: grid; grid-template-columns: 52px 1fr; gap: 10px; margin: 4px 0; }
+  .timeline time { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="viz-root" id="root">
+
+  <p class="lead">先回答你：<b>卡 A 确定能用；卡 B 大概率能用，但还没上过相机；完整版我不能打包票。</b>完整版就算失败，按设计也只会像上次那样只剩原厂菜单；它只在打开配方菜单时才运行，开机和刷机都不经过它，所以随时能插卡 A 刷回。</p>
+
+  <div class="status-grid">
+    <article class="status" data-level="good">
+      <span class="pill"><span class="ico" aria-hidden="true">✓</span>可以放心用</span>
+      <h3>卡 A · 50mm</h3>
+      <p>上午你已经在相机上看到 8 个配方都有颜色。</p>
+      <p class="small">01、02、05、06 是新调的，07、08 是徕卡。</p>
+    </article>
+    <article class="status" data-level="warn">
+      <span class="pill"><span class="ico" aria-hidden="true">!</span>大概率能用，第一次上机</span>
+      <h3>卡 B · M 模块</h3>
+      <p>程序和卡 A 是同一份，只换了 M 模块的内存地址、模块名和一个校验数字，审查员逐条比对过。卡上文件我 13:00 又核对了一遍。</p>
+      <p class="small">保护：装错模块不会去动颜色数据；每改一段颜色数据前，先读相机里原来的值，对不上就停手。出问题时最可能的样子是只有原厂颜色。</p>
+    </article>
+    <article class="status" data-level="serious">
+      <span class="pill"><span class="ico" aria-hidden="true">▲</span>没把握</span>
+      <h3>完整版 · 16 个配方 + 微调</h3>
+      <p>上次读不到新配方，最可能的原因已经找到并修好，但只在电脑模拟里证明过。新配方程序还没在相机上成功跑过一次。</p>
+      <p class="small">审查有 1 条没放行，我判断可以接受（见下面）。第一次安装要约 210 KB 内存，相机够不够没测过；不够时按设计直接从卡上运行。</p>
+    </article>
+  </div>
+
+  <h2>颜色还原：离你定的 95% 还差多少</h2>
+  <p class="small">相似度 = 原厂标准（04）和目标风格之间的差距，被消掉了多少。100% 就是和目标一样，0% 就是和原厂标准没区别。04 是比较的起点，所以不在图里。目前只有 03 黑白过了 95%。</p>
+  <div class="legend" aria-hidden="true">
+    <span><i class="sw"></i>现在卡上的版本</span>
+    <span><i class="sw light"></i>预测给的范围</span>
+    <span><i class="sw tick"></i>之前的版本</span>
+    <span><i class="sw target"></i>你的目标 95%</span>
+  </div>
+
+  <figure class="panel">
+    <figcaption>50mm · 卡 A<span class="small">“之前”是旧表在相机上拍色卡的实测</span></figcaption>
+    <div class="chart" id="c50"><svg role="group" aria-label="50mm 各配方相似度"></svg><div class="tip" role="tooltip"></div></div>
+  </figure>
+  <figure class="panel">
+    <figcaption>M 模块 + 35mm · 卡 B<span class="small">“之前”是直接搬用 50mm 的表</span></figcaption>
+    <div class="chart" id="cm"><svg role="group" aria-label="M 模块各配方相似度"></svg><div class="tip" role="tooltip"></div></div>
+  </figure>
+
+  <p class="small" style="margin-top:10px">实测 = 用相机拍色卡算出来的；预测 = 电脑模型算的，新表还没拍色卡验证。M 模块全是预测，而且那次色卡条件不理想：f/2 暗角大，白页过曝。重拍一次是提高 M 模块最直接的办法。</p>
+
+  <details>
+    <summary>看数字表</summary>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>配方</th><th>机内名</th><th>50mm 现在</th><th>50mm 之前</th><th>M 模块 现在</th><th>M 模块 之前</th></tr></thead>
+      <tbody id="numtable"></tbody>
+    </table>
+    </div>
+  </details>
+
+  <h2>为什么还没到 95%</h2>
+  <ul>
+    <li><b>01、02（GR 正片、负片）</b>：目标是用 GR III 的照片推出来的，本身就不准。等 GR IV 机主的原图到了，粗估 01 有机会到 57–71%，02 到 75–83%。</li>
+    <li><b>05、06（富士）</b>：现在能动的只有曲线、亮度系数和 24 个色相区这几样，暗部的高饱和颜色、亮部的中等饱和颜色还差一些。</li>
+    <li><b>07、08（徕卡）</b>：胡子的 LUT 要先从松下标准模式反推回来，随明暗变化的细微偏色还原不了。</li>
+    <li><b>03（高反差黑白）</b>：中间值很准，但少数色块的亮度偏差大。</li>
+    <li><b>M 模块整体偏低</b>：只拍过一次屏幕色卡，条件也差。用 f/5.6、正确曝光重拍一次会明显好转。</li>
+    <li>所有数字都来自屏幕色卡，还没用实景照片验证。</li>
+  </ul>
+
+  <h2>固件：哪些在相机上验证过</h2>
+  <div class="table-wrap">
+  <table class="matrix">
+    <thead><tr><th>项目</th><th>电脑上（模拟、审查）</th><th>相机上</th></tr></thead>
+    <tbody>
+      <tr class="grp"><td colspan="3">卡 A：Stage2l + 50mm 新表</td></tr>
+      <tr><td>刷进相机，8 个配方都有颜色</td><td><span class="m ok">通过</span></td><td><span class="m ok">你上午确认过</span></td></tr>
+
+      <tr class="grp"><td colspan="3">卡 B：Stage2l M 模块版 + M 模块校色表</td></tr>
+      <tr><td>和卡 A 是同一份程序，只换地址</td><td><span class="m ok">逐条比对通过</span></td><td><span class="m na">—</span></td></tr>
+      <tr><td>卡上文件正确</td><td><span class="m ok">13:00 复核，指纹全对</span></td><td><span class="m na">—</span></td></tr>
+      <tr><td>装 50mm 时不动颜色数据</td><td><span class="m ok">通过</span></td><td><span class="m no">还没试</span></td></tr>
+      <tr><td>M 模块的配方颜色生效</td><td><span class="m ok">模拟通过</span></td><td><span class="m no">还没试</span></td></tr>
+
+      <tr class="grp"><td colspan="3">完整版：v3.2 机身 + 新配方程序（full-r3）</td></tr>
+      <tr><td>v3.2 机身日常使用</td><td><span class="m ok">审查通过</span></td><td><span class="m ok">菜单、拍照、回放、休眠、固件更新界面都正常</span></td></tr>
+      <tr><td>换 M 模块后开机</td><td><span class="m ok">开机流程没改动</span></td><td><span class="m unk">有一次没开机，重插后正常，原因不明</span></td></tr>
+      <tr><td>出错时自动退回原厂菜单</td><td><span class="m ok">通过</span></td><td><span class="m ok">上次失败正好证明了</span></td></tr>
+      <tr><td>修好“读不到新配方”</td><td><span class="m ok">258 项检查通过</span></td><td><span class="m no">还没试</span></td></tr>
+      <tr><td>新配方程序在相机上跑起来</td><td><span class="m ok">模拟通过</span></td><td><span class="m no">还没成功过</span></td></tr>
+      <tr><td>第一次安装要约 210 KB 内存</td><td><span class="m na">—</span></td><td><span class="m unk">够不够不知道</span></td></tr>
+      <tr><td>独立审查</td><td><span class="m bad">1 条没放行，我接受了</span></td><td><span class="m na">—</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="small" style="margin-top:8px">没放行的那 1 条：机身内部存储坏掉、一直读不出来时，里面的配方可能被旧一点的版本覆盖。旧版本也是检查过的完整版本，不影响拍照，也不会用到没检查过的数据。要修好它，得能分清“文件不存在”和“文件读不出”，但相机对这两种情况回的是同一个错误码。</p>
+
+  <h2>完整版里有什么</h2>
+  <p class="small">下面是设计和电脑模拟里的样子，还没在相机上验证。</p>
+  <ul>
+    <li>一张卡同时管 50mm 和 M 模块，换模块不用重刷。</li>
+    <li>第一次打开配方菜单时，配方装进机身内部存储，之后格式化 SD 卡也不丢。</li>
+    <li>在配方列表里按 Fn2 打开微调：对比度、饱和度、高光、阴影，各 ±5 档。上下键实时看效果，OK 保存，MENU 取消，只改当前这个配方。原来想用右键，但右键没法保证不影响别的界面，所以改成 Fn2。</li>
+    <li>冷暖、色调两项先关着：要先在相机上确认方向，免得调反。</li>
+    <li>50mm 的 16 个位置：01 Posi、02 Nega（旧版）；03 HC BW；04 Std；05Chrome、06ClsNeg（新）；07 Chrome、08 Vivid（徕卡）；09 Posi6、10 Nega6（新版正片、负片，方便和 01、02 对比）；11–16 原厂。</li>
+    <li>M 模块：01–08 是校色版，09–16 原厂。</li>
+  </ul>
+
+  <h2>今天的经过</h2>
+  <ol class="timeline">
+    <li><time>08:53</time><span>写入 v3.2 机身固件（你同意的）。</span></li>
+    <li><time>08:56</time><span>你刷完，原厂菜单正常。这一步是对的。</span></li>
+    <li><time>09:03</time><span>写入完整配方包，相机没加载出来。</span></li>
+    <li><time>09:29</time><span>退回 Stage2l + 50mm 新表。</span></li>
+    <li><time>09:46</time><span>加入徕卡 07、08。</span></li>
+    <li><time>09:52</time><span>你确认卡 A 的 8 个配方都有颜色。</span></li>
+    <li><time>10:11</time><span>找到完整版失败的最可能原因：文件不存在时相机回 -1，程序以为会是 -2。</span></li>
+    <li><time>10:30</time><span>卡 B（M 模块版）写好，按你说的留在 Mac 上。</span></li>
+    <li><time>11:00</time><span>完整版修好（full-r3）。</span></li>
+    <li><time>11:14</time><span>审查剩 1 条没放行，我判断可以接受，试用包放在电脑里，没写卡。</span></li>
+    <li><time>13:04</time><span>重新核对卡 B 和试用包，全对；另派一个审查员检查“体检包”。</span></li>
+  </ol>
+
+  <h2>你回来后</h2>
+  <ol>
+    <li>日常拍照：50mm 用卡 A。用 M 模块时跟我说“推出 B 卡”，插卡 B，按住“+”和播放键开机刷一次。换回 50mm 就插卡 A 再刷一次。</li>
+    <li>想试完整版：在家有空时跟我说“试新版”，我写到卡 B 上（M 模块版我随时能写回去）。成功会看到 16 个配方和微调；失败就只有原厂菜单，插卡 A 刷回，两分钟。</li>
+    <li>万一失败：我在准备一个只读的“体检包”，开一次机拍一下屏幕，就知道卡在哪一步。它正在审查，你回来前会有结果。</li>
+  </ol>
+</div>
+
+<script>
+(function () {
+  const root = document.getElementById('root');
+  const NS = 'http://www.w3.org/2000/svg';
+
+  const R50 = [
+    { name: '01 GR 正片', short: '01 GR 正片', cam: '01 Posi', lo: 45.3, hi: 48.6, kind: '预测', before: 12.5, bk: '实测，旧表', note: '目标是用 GR III 照片推出来的，本身不够准。' },
+    { name: '02 GR 负片', short: '02 GR 负片', cam: '02 Nega', lo: 63.3, hi: 64.9, kind: '预测', before: 56.2, bk: '实测，旧表', note: '紫蓝色和绿色还难。' },
+    { name: '03 高反差黑白', short: '03 黑白', cam: '03 HC BW', lo: 98.3, hi: 98.3, kind: '实测', before: null, bk: '表没改', note: '中间值很准，少数色块亮度偏差大。' },
+    { name: '05 富士经典正片', short: '05 富士正片', cam: '05Chrome', lo: 87.0, hi: 88.6, kind: '预测', before: 84.1, bk: '实测，旧表', note: '暗部的高饱和颜色还差一些。' },
+    { name: '06 富士经典负片', short: '06 富士负片', cam: '06ClsNeg', lo: 82.8, hi: 84.4, kind: '预测', before: 82.3, bk: '实测，旧表', note: '亮部的中等饱和颜色难。' },
+    { name: '07 徕卡 Chrome', short: '07 徕卡Chrome', cam: '07 PrbA', lo: 76.4, hi: 76.4, kind: '预测', before: null, bk: '新加的', note: '来自胡子的 LUT，用合成色点算的，不是色卡。' },
+    { name: '08 徕卡 VIVID', short: '08 徕卡VIVID', cam: '08 PrbB', lo: 69.1, hi: 69.1, kind: '预测', before: null, bk: '新加的', note: '来自胡子的 LUT，用合成色点算的，不是色卡。' }
+  ];
+  const RM = [
+    { name: '01 GR 正片', short: '01 GR 正片', cam: '01 Posi', lo: 37.9, hi: 37.9, kind: '预测', before: 18.3, bk: '预测，搬用 50mm 的表', note: '参考数据弱，色卡条件也差。' },
+    { name: '02 GR 负片', short: '02 GR 负片', cam: '02 Nega', lo: 17.1, hi: 17.1, kind: '预测', before: -14.6, bk: '预测，搬用 50mm 的表，比原厂离目标还远', note: '暗部和低饱和颜色的关系还不对。' },
+    { name: '03 高反差黑白', short: '03 黑白', cam: '03 HC BW', lo: 95.7, hi: 95.7, kind: '预测', before: 88.1, bk: '预测，搬用 50mm 的表', note: '中间值准，但少数色块偏差很大。' },
+    { name: '05 富士经典正片', short: '05 富士正片', cam: '05Chrome', lo: 78.5, hi: 78.5, kind: '预测', before: 42.3, bk: '预测，搬用 50mm 的表', note: '随明暗变化的富士颜色还原不全。' },
+    { name: '06 富士经典负片', short: '06 富士负片', cam: '06ClsNeg', lo: 70.2, hi: 70.2, kind: '预测', before: 37.2, bk: '预测，搬用 50mm 的表', note: '没开分通道曲线，色调差一些。' },
+    { name: '07 徕卡 Chrome', short: '07 徕卡Chrome', cam: '07 PrbA', lo: 70.8, hi: 70.8, kind: '预测', before: 36.3, bk: '预测，搬用 50mm 的表', note: 'LUT 的明暗和颜色联动还原不全。' },
+    { name: '08 徕卡 VIVID', short: '08 徕卡VIVID', cam: '08 PrbB', lo: 69.0, hi: 69.0, kind: '预测', before: 32.2, bk: '预测，搬用 50mm 的表', note: '鲜艳颜色的细微色相变化还原不了。' }
+  ];
+
+  const pct = v => Math.round(v) + '%';
+  const pct1 = v => v.toFixed(1) + '%';
+  const rangeText = r => Math.round(r.lo) === Math.round(r.hi) ? pct(r.lo) : Math.round(r.lo) + '–' + pct(r.hi);
+  const rangeText1 = r => r.lo === r.hi ? pct1(r.lo) : r.lo.toFixed(1) + '–' + pct1(r.hi);
+
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function roundEnd(x0, x1, y, h, r) {
+    r = Math.min(r, Math.max(0, x1 - x0), h / 2);
+    return 'M' + x0 + ',' + y + 'H' + (x1 - r) + 'Q' + x1 + ',' + y + ' ' + x1 + ',' + (y + r) +
+           'V' + (y + h - r) + 'Q' + x1 + ',' + (y + h) + ' ' + (x1 - r) + ',' + (y + h) + 'H' + x0 + 'Z';
+  }
+
+  function render(chart, rows) {
+    const svg = chart.querySelector('svg');
+    const tip = chart.querySelector('.tip');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const W = Math.max(300, Math.floor(chart.clientWidth));
+    const narrow = W < 520;
+    const labelW = narrow ? 100 : 128;
+    const valueW = narrow ? 86 : 104;
+    const X0 = labelW, X1 = W - valueW;
+    const top = 26, rowH = 34, barH = 14, axisH = 24;
+    const bottom = top + rows.length * rowH;
+    const H = bottom + axisH;
+    svg.setAttribute('width', W);
+    svg.setAttribute('height', H);
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    const xmin = -20, xmax = 100;
+    const x = v => X0 + (v - xmin) / (xmax - xmin) * (X1 - X0);
+
+    [0, 25, 50, 75, 100].forEach(t => {
+      el('line', { x1: x(t), x2: x(t), y1: top - 4, y2: bottom, stroke: t === 0 ? 'var(--axis)' : 'var(--grid)', 'stroke-width': 1, 'shape-rendering': 'crispEdges' }, svg);
+      const tx = el('text', { x: x(t), y: bottom + 16, 'text-anchor': 'middle', class: 'tick' }, svg);
+      tx.textContent = t === 100 ? '100%' : String(t);
+    });
+    el('line', { x1: x(95), x2: x(95), y1: top - 8, y2: bottom, stroke: 'var(--ink-2)', 'stroke-width': 1.5 }, svg);
+    const tl = el('text', { x: x(95), y: top - 12, 'text-anchor': 'end', class: 'target' }, svg);
+    tl.textContent = '目标 95%';
+    const vh = el('text', { x: W - 2, y: top - 12, 'text-anchor': 'end', class: 'tick' }, svg);
+    vh.textContent = '现在';
+
+    rows.forEach((r, i) => {
+      const y0 = top + i * rowH;
+      const g = el('g', { class: 'row', tabindex: 0, role: 'img',
+        'aria-label': r.name + '，现在 ' + rangeText(r) + '，' + r.kind + (r.before != null ? '；之前 ' + pct(r.before) : '') }, svg);
+      el('rect', { x: 0, y: y0 + 1, width: W, height: rowH - 2, rx: 4, class: 'hit' }, g);
+      const lab = el('text', { x: 2, y: y0 + rowH / 2 + 4.5, class: 'label' }, g);
+      lab.textContent = narrow ? r.short : r.name;
+
+      const by = y0 + (rowH - barH) / 2;
+      const xb = x(0), xl = x(r.lo), xh = x(r.hi);
+      if (xh - xl > 6) {
+        el('path', { d: 'M' + xb + ',' + by + 'H' + xl + 'V' + (by + barH) + 'H' + xb + 'Z', fill: 'var(--bar)' }, g);
+        el('path', { d: roundEnd(xl + 2, xh, by, barH, 4), fill: 'var(--bar)', 'fill-opacity': 0.35 }, g);
+      } else {
+        el('path', { d: roundEnd(xb, Math.max(xh, xl), by, barH, 4), fill: 'var(--bar)' }, g);
+      }
+      if (r.before != null) {
+        const xt = x(r.before);
+        el('line', { x1: xt, x2: xt, y1: by - 4, y2: by + barH + 4, stroke: 'var(--surface)', 'stroke-width': 6, 'stroke-linecap': 'round' }, g);
+        el('line', { x1: xt, x2: xt, y1: by - 4, y2: by + barH + 4, stroke: 'var(--before)', 'stroke-width': 2.5, 'stroke-linecap': 'round' }, g);
+      }
+      const vt = el('text', { x: W - 2, y: y0 + rowH / 2 + 4.5, 'text-anchor': 'end', class: 'value' }, g);
+      const t1 = el('tspan', {}, vt); t1.textContent = rangeText(r);
+      const t2 = el('tspan', { class: 'kind', dx: 5 }, vt); t2.textContent = r.kind;
+
+      const show = () => {
+        tip.textContent = '';
+        const h = document.createElement('div');
+        const b = document.createElement('b'); b.textContent = r.name; h.appendChild(b);
+        const c = document.createElement('span'); c.className = 'dim'; c.textContent = '　机内名 ' + r.cam; h.appendChild(c);
+        tip.appendChild(h);
+        const now = document.createElement('div'); now.textContent = '现在：' + rangeText1(r) + '（' + r.kind + '）'; tip.appendChild(now);
+        const bf = document.createElement('div');
+        bf.textContent = '之前：' + (r.before != null ? pct1(r.before) + '（' + r.bk + '）' : r.bk);
+        tip.appendChild(bf);
+        const n = document.createElement('div'); n.className = 'dim'; n.textContent = r.note; tip.appendChild(n);
+        const tw = Math.min(230, W - 8);
+        tip.style.width = tw + 'px';
+        let left = Math.min(Math.max(xh + 10, X0), W - tw - 4);
+        tip.style.left = Math.max(0, left) + 'px';
+        tip.style.top = (y0 + rowH + 2) + 'px';
+        tip.style.opacity = 1;
+      };
+      const hide = () => { tip.style.opacity = 0; };
+      g.addEventListener('mouseenter', show);
+      g.addEventListener('focus', show);
+      g.addEventListener('mouseleave', hide);
+      g.addEventListener('blur', hide);
+    });
+
+    let overflow = 0;
+    svg.querySelectorAll('text.label').forEach(t => { if (t.getBBox().width > labelW - 6) overflow++; });
+    svg.querySelectorAll('text.value').forEach(t => { if (t.getBBox().width > valueW - 4) overflow++; });
+    console.log('chart', chart.id, 'width', W, 'rows', rows.length, 'label/value overflow', overflow);
+  }
+
+  function fillTable() {
+    const tb = document.getElementById('numtable');
+    R50.forEach((r, i) => {
+      const m = RM[i];
+      const tr = document.createElement('tr');
+      const cells = [
+        r.name, r.cam,
+        rangeText1(r) + ' ' + r.kind,
+        r.before != null ? pct1(r.before) + ' 实测' : r.bk,
+        rangeText1(m) + ' ' + m.kind,
+        m.before != null ? pct1(m.before) + ' 预测' : m.bk
+      ];
+      cells.forEach((v, k) => { const td = document.createElement('td'); td.textContent = v; if (k >= 2) td.className = 'num'; tr.appendChild(td); });
+      tb.appendChild(tr);
+    });
+  }
+
+  function detectTheme() {
+    let dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    try {
+      const probe = document.createElement('div');
+      probe.style.cssText = 'position:absolute;width:1px;height:1px;left:-9px;top:0;background:var(--background)';
+      document.body.appendChild(probe);
+      const c = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      const cv = document.createElement('canvas'); cv.width = cv.height = 1;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = 'rgba(0,0,0,0)'; ctx.fillStyle = c; ctx.fillRect(0, 0, 1, 1);
+      const d = ctx.getImageData(0, 0, 1, 1).data;
+      if (d[3] > 0) dark = (0.2126 * d[0] + 0.7152 * d[1] + 0.0722 * d[2]) < 128;
+    } catch (e) { }
+    const want = dark ? 'dark' : 'light';
+    if (root.dataset.theme !== want) root.dataset.theme = want;
+    console.log('theme', want);
+  }
+
+  const c50 = document.getElementById('c50');
+  const cm = document.getElementById('cm');
+  function renderAll() { detectTheme(); render(c50, R50); render(cm, RM); }
+
+  fillTable();
+  renderAll();
+  let lastW = 0;
+  new ResizeObserver(() => { const w = Math.floor(c50.clientWidth); if (w !== lastW) { lastW = w; render(c50, R50); render(cm, RM); } }).observe(c50);
+  new MutationObserver(detectTheme).observe(document.documentElement, { attributes: true, childList: false, subtree: false });
+  new MutationObserver(detectTheme).observe(document.head, { childList: true, subtree: true, characterData: true });
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', detectTheme);
+})();
+</script>
+</body>
+</html>

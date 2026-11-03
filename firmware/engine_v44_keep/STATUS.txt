@@ -1,0 +1,1 @@
+STOPPED: H07 completion requires a resident change. Generation 120 is an unaccepted diagnostic build. Full regression and A/B/C are incomplete.

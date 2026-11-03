@@ -1,0 +1,140 @@
+#ifndef RV_SLIM_H
+#define RV_SLIM_H
+#include "abi.h"
+#include "gxrce.h"
+
+typedef struct { uint16_t hook,phase; uint32_t a,b; } RvRingEvent;
+typedef struct {
+    uint32_t magic;
+    uint8_t version,state,inflight,grain;
+    uint32_t epoch[RV_EPOCH_COUNT];
+    uint32_t block,inverse,lease,boot_epoch,heap_epoch,next_token;
+    uint32_t rx,event_head,dropped;
+    int32_t fault;
+    uint32_t post[4],ui_restore[8],flags;
+    RvRingEvent events[RV_RING_COUNT];
+    uint32_t pins[3];
+} RvRoot;
+_Static_assert(sizeof(RvRoot)==256 && offsetof(RvRoot,events)==148 &&
+               offsetof(RvRoot,pins)==244,"fixed slim root");
+enum { RV_ROOT_MAGIC=0x52565331, RV_LEASES=6 };
+enum { RF_STOP=1,RF_SD=2,RF_UNCERTAIN=4,RF_BUSY=8,RF_OWNER=16 };
+enum { RV_SOURCE_NONE,RV_SOURCE_A,RV_SOURCE_B,RV_SOURCE_CARD };
+enum { CAP_FILE_WRITE=1u<<16,CAP_UI=1u<<17,CAP_S=1u<<18,CAP_W=1u<<19 };
+enum { RV_READ_CAPS=0x7fff, RV_PRODUCT_CAPS=0xf7fff };
+enum { RV_MAX_FILE=98304,RV_MAX_CODE=65536,RV_MAX_IMAGE=114688,
+       RV_MAX_LEASE=65536,
+       RV_STATE_BYTES=6144,RV_UI_CAPACITY=256 };
+typedef struct { uint8_t body[32],build[32],abi[16]; } RvTrust;
+typedef struct { uint32_t valid,generation,bytes,bss; } RvCandidate;
+typedef struct { uint32_t token,inverse,base,length,usage; } RvLease;
+typedef struct { uint32_t token,fd,epoch,mode; } RvFileToken;
+
+/* This is common engine ingress, not a probe wire layout. The resident owns
+ * it for the entire session and passes the same address on every entry. */
+typedef struct {
+    RvBufferHeader header;
+    uint32_t root_address,root_bytes,session_address,session_bytes;
+    uint32_t state_address,state_bytes,state_lease;
+    uint32_t image_address,image_bytes,image_lease,code_address,code_bytes;
+    uint32_t image_bss_bytes,nonce;
+    uint32_t ui_state_address,ui_state_bytes,ui_state_capacity;
+    uint32_t entries_address,entries_bytes,grain_address,grain_bytes;
+    uint32_t input_fields,input_sequence,input[4],lease_max_bytes;
+} RvPrivateContext;
+_Static_assert(sizeof(RvPrivateContext)==120,"private context wire");
+
+typedef struct {
+    RvEngineEntries entries;
+    RvPrivateContext context;
+    RvLease leases[RV_LEASES];
+    RvFileToken files[2];
+    uint32_t image_address,image_bytes,bss_bytes,entry_offset;
+    uint32_t selected_source,generation,source_bytes,capabilities;
+    uint32_t code_begin,code_end,crc;
+    GxrceUnit unit;
+    uint32_t settings,settings_bytes,settings_epoch,settings_token;
+    uint32_t rpc_token,rpc_phase,bindings[RV_EPOCH_COUNT],sd_id[4];
+    uint32_t view_state,view_lease,list,details,rows,cursor,redraw;
+    uint32_t file_bytes[2],file_limit[2],file_object[2],file_end[2];
+} RvSession;
+enum { RV_SESSION_BYTES=(sizeof(RvSession)+3)&~3u,
+       RV_BLOCK_OVERHEAD=RV_SESSION_BYTES+RV_STATE_BYTES+RV_UI_CAPACITY,
+       RV_MIN_BLOCK_BYTES=RV_BLOCK_OVERHEAD+256,
+       RV_MAX_BLOCK_BYTES=RV_BLOCK_OVERHEAD+RV_MAX_IMAGE };
+_Static_assert(RV_MAX_BLOCK_BYTES<=131072,"bounded main allocation");
+/* File and BSS sizes have already passed rv_header() before these helpers. */
+static inline uint32_t rv_image_span(uint32_t file,uint32_t bss)
+{return (file+bss+3u)&~3u;}
+static inline uint32_t rv_block_bytes(uint32_t file,uint32_t bss)
+{return RV_BLOCK_OVERHEAD+rv_image_span(file,bss);}
+#ifdef RV_HOST
+void *rv_host_address(uint32_t);
+#define RV_PTR(a) rv_host_address((uint32_t)(a))
+extern RvRoot *rv_host_root;
+#else
+#define RV_PTR(a) ((void *)(uintptr_t)(a))
+#endif
+#define RV_WORD(a) (*(volatile uint32_t *)RV_PTR(a))
+#define RV_BYTE(a) (*(volatile uint8_t *)RV_PTR(a))
+/* Compile the shared root operations into both images, with distinct engine
+ * symbols. The service archive has no branch into resident code. */
+#ifdef RV_ENGINE_SERVICES
+#define rv_clear es_clear
+#define rv_equal es_equal
+#define rv_crc_update es_crc_update
+#define gxrce_crc32 es_crc32
+#define rv_be32 es_be32
+#ifndef RV_HOST
+#define memcpy es_memcpy
+#define memset es_memset
+#endif
+#define rv_session es_session
+#define rv_range es_range
+#define rv_record es_record
+#define rv_ui_abort es_ui_abort
+#define rv_grain_commit es_grain_commit
+#define rv_free_checked es_free_checked
+#endif
+static inline int rv_heap_span(uint32_t address,uint32_t n)
+{
+    uint32_t begin=RV_WORD(0x200d3488),end=RV_WORD(0x200d348c);
+    return !(address&3)&&begin<end&&address>=begin&&address<end&&n<=end-address;
+}
+static inline uint16_t rv_be16(const uint8_t *p) { return (uint16_t)((uint16_t)p[0]<<8|p[1]); }
+uint32_t rv_be32(const uint8_t *);
+static inline void rv_put32(uint8_t *p,uint32_t v) { p[0]=v>>24;p[1]=v>>16;p[2]=v>>8;p[3]=v; }
+
+
+void *memcpy(void *,const void *,size_t);
+void rv_clear(void *,uint32_t);
+int rv_equal(const void *,const void *,uint32_t);
+uint32_t rv_crc_update(uint32_t,const uint8_t *,uint32_t);
+uint32_t gxrce_crc32(const uint8_t *,size_t);
+GxrceStatus rv_header(const uint8_t *,uint32_t,const RvTrust *);
+GxrceStatus rv_validate(const uint8_t *,size_t,const RvTrust *,GxrceView *);
+void rv_reset(RvRoot *);
+RvSession *rv_session(RvRoot *);
+int rv_range(RvRoot *,uint32_t,uint32_t,uint32_t);
+void rv_record(RvRoot *,uint32_t,uint32_t,uint32_t,uint32_t);
+void rv_ui_abort(RvRoot *);
+void rv_grain_commit(RvRoot *,uint32_t,uint32_t);
+int32_t rv_free_checked(RvRoot *,uint32_t,uint32_t *);
+void rv_notify(RvRoot *,uint32_t,uint32_t,int32_t);
+void rv_epochs(RvRoot *,uint32_t);
+void rv_hook_observe(RvRoot *,uint32_t,uint32_t *);
+void rv_grain(RvRoot *,uint8_t *);
+int32_t rv_load(RvRoot *,const RvTrust *);
+int32_t rv_engine(RvRoot *,uint32_t,RvRequest *,RvReply *);
+int32_t rv_invoke(uint32_t,const RvApi *,uint32_t,const RvRequest *,RvReply *);
+extern const RvTrust rv_trust;
+extern const uint32_t rv_pins[3];
+int32_t rv_native_open(const char *,uint32_t);
+int32_t rv_native_read(int32_t,void *,uint32_t);
+int32_t rv_native_close(int32_t);
+uint32_t rv_native_alloc(uint32_t);
+void rv_native_free(uint32_t);
+uint32_t rv_irq_save(void);
+void rv_irq_restore(uint32_t);
+void rv_cache_sync(void);
+#endif

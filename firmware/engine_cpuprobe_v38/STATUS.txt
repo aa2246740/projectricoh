@@ -1,0 +1,14 @@
+Generation 148. CPU speed probe DAT for the v3.8 body (resident build id 79d8e2a2...). Host review candidate.
+Copy of engine_probe_p1 (gen 141); the peaking probe and every RPC 8 path are replaced by the speed probe and two
+read-only pages of body state (STA: UI state history, STK: task 26 stack high-water mark).
+Live files:
+  build_probe.py                 build and pack (run with TMPDIR=/Volumes/Workspace/Scratch/tmp/projectricoh/cpuprobe)
+  cp_model.py, cp_vectors.py     generated tables (17^3 table, coordinates, inputs, grain gain, expected CRCs);
+                                 cp_vectors.py is firmware/lut_p0_timing/vectors.py byte for byte
+  candidate/common.py, candidate/service_build.py
+  candidate/engine_services/     display-only service profile (UI list/text), cursor check before the first capture
+  candidate/containers/product/  probe.c, cpkern.S (tick, loops), kernel.c (= lut_p0_timing/kernel.c), kernel.h,
+                                 build.py, pack.py, pack_v1.py, runtime.py, engine.ld, src/.../eng_mem.c
+  resident/                      v3.8 sources compiled into the DAT (identical to engine_probe_p1/resident)
+Everything else is carried over from engine_probe_p1 unchanged and is not used by this build.
+Checks and report: research/cpu_speed_probe. Package: firmware/package_v38_cpuprobe.

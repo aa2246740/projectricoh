@@ -1,0 +1,3 @@
+gen 130 stopped candidate
+首次发布失败；H07 目标切点未到达。
+详见 research/g130_fix/REPORT.md。

@@ -1,0 +1,15 @@
+ts	phase	decision	why	evidence	result
+2026-11-02T01:52:00.830797+00:00	start	开始本轮实现，先前无本轮记录	任务要求固定输入与设备边界	evidence/frozen-inputs.json	已记录
+2026-11-02T01:56:52.446761+00:00	build	固定 g155 resident，生成机身和两个完整包	同一算法已逐字节复现当前 v3.9	evidence/build.json	421 个差异区间均有来源
+2026-11-02T02:06:05.749608+00:00	cold	无 DAT 三单元到待机并继续运行	从 MAIN 观察首次锁存和零 BOOT 调用	evidence/nodat-mount-r1-detail.json	三单元通过首次锁存；后续 32→5 尚未实测
+2026-11-02T02:06:05.749829+00:00	identity	用实际打包机身检查装载器身份门	原 g155 测试只在模型 RAM 放置 resident	evidence/identity-28mm-diag-c-r4.json	28mm 七组合通过；50mm 正在运行
+2026-11-02T02:06:05.749833+00:00	budget	将有 DAT 冷启动预算增至五亿步	一亿五千万步时初始化尚未返回	evidence/release-28mm-r1-detail.json	原收据记 INCOMPLETE
+2026-11-02T02:09:25.647792+00:00	process	终止旧恢复进程并为后续启动加上限检查	SIGINT 被 C 回调吞掉，替代运行曾短暂形成四个测试进程	evidence/process-limit-event.json	旧进程已终止；本次规则偏差保留
+2026-11-02T02:11:41.286754+00:00	recovery	恢复运行补齐旧检查的串口输入 8=0x5	已核对历史完成收据的实际参数	evidence/tool-r1-errors.json	前两次中止记 INCOMPLETE；r3 正在运行
+2026-11-02T02:35:54.818625+00:00	resume	从外部中断处继续，未发现残留测试进程	机主给出新的 110 分钟时限及记录来源说明	evidence/resume.json	恢复截止 04:25:36 UTC
+2026-11-02T02:48:04.826394+00:00	boot	保持冻结 DAT，登记冷启动 BOOT 的 activity 门问题	真实 MOUNT activity=0，g155 要求 8，合法记录仍未应用	evidence/record-mount-builtin-r1-record.json	P1 待修复；无颜色写，未改 resident 或 DAT
+2026-11-02T03:01:05.891808+00:00	boot	五个合法记录用例全部保留为未通过	三单元实际 activity 均为 0，BOOT 资格检查失败	evidence/valid-record-summary.json	0/5 自动套用通过；冻结 DAT 未改
+2026-11-02T03:38:16.195654+00:00	recovery	在原生 UI 负返回断点保存结果并结束旧检查循环	1,859,053,607 步后原检查器反复返回同一断点，不再前进	evidence/recovery-v310-full-r4-flash.json	恢复未闭合；NAND 全字节与无损日志已保存
+2026-11-02T03:53:20.890802+00:00	verify	按完整目标而非进程退出码汇总五个合法记录	旧收集器的进程 0 不代表目标相等	evidence/acceptance.json	五例均 FAIL；资格函数 Python 复核一致
+2026-11-02T03:53:20.890814+00:00	recovery	为自有恢复脚本加入负返回和重复断点终点保护	旧工具在原生 UI 断点停住后反复记录同一位置	evidence/recovery-v310-confirm-r5.json	修订后确认页仍与当前 v3.9 对照相同
+2026-11-02T03:53:20.890817+00:00	handoff	按有缺陷交付并保留所有 OPEN 边界	冻结 DAT 的 BOOT 资格问题阻止完整自动套用	REPORT.md	不改 protected 输入；机主步骤为待修正后使用的草稿

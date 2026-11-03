@@ -1,0 +1,16 @@
+ts	phase	decision	why	evidence	result
+2026-11-02T03:58:26+00:00	start	复制 g155 到新引擎目录后修复	保留原始来源并冻结 resident 与机身	evidence/start.json	四小时截止 07:58:26 UTC
+2026-11-02T04:06:52+00:00	qualification	BOOT 接受原生 activity 0，初始上下文不符则干净跳过	真实 MAIN 清零后在首次待机保持 0；8 是 Image 子活动	evidence/activity-static.json	不预置原生状态字
+2026-11-02T04:22:16+00:00	proof	用同一冷启动输入重放资格函数	区别修复结果与观察器递归故障	evidence/gate-mount-python.json	C/Python 均 1233 步返回 1
+2026-11-02T04:29:37+00:00	studio	保持代数 155 和现有格式	现有 Studio codec 严格读取并原样封装	evidence/studio-compatibility.json	两 DAT 逐字节往返相同
+2026-11-02T04:34:15+00:00	process	后续只读检查也纳入同一启动器并预留辅助进程位	此前一次短时 Studio 只读检查与三个冷启动进程重叠	decisions.tsv	该偏差保留；随后本任务测试上限统一为三
+2026-11-02T05:00:29+00:00	nand	在自有副本修正 NAND 半字列地址	原厂 spare column 1024 对应 byte 2048；旧模型写入页内数据	evidence/nand-column-check.json	独立页检查通过；完整恢复双映像重跑
+2026-11-02T05:22:35+00:00	preview	为严格匹配的 144 B 2F03 请求声明正常 48 B 2003 回复	原厂三个单元的回复构造器均有相同头和 status 0	evidence/preview-model-check.json	仅声明正常协议回复；光学字段未实测
+2026-11-02T05:22:34+00:00	crc	单独验证坏 CRC	原生资格已通过，不再由旧 activity 门提前结束	evidence/gate-bad-crc-acceptance.json	W/S/T 0；返回正常跳过
+2026-11-02T05:31:40+00:00	owner	补首拍颜色及首次 Image Settings 高亮	真实相机首次 state 5 的 activity 仍未实测	../OWNER_STEPS.md	不同 activity 仅不自动套用；机主可识别
+2026-11-02T06:07:43+00:00	recovery-return	负返回不能单独判失败	原厂成功收尾与错误路径都经 0x2036DC1C 返回 -1；使用已记录的成功收尾调用 LR 与最终 NAND 字节判断	原厂 0x2036DB28..0x2036DC38；recovery_reassemble.py	初次 R1 缺少成功收尾 LR；修正模型继续运行
+2026-11-02T07:16:37.458735+00:00	h52	实际队列时序失败，停止扩大实现	DIRTY 期间物理快门在清位后处理	evidence/h52-real-mount-h52-acceptance.json	冻结 resident/机身不改；有缺陷
+2026-11-02T07:16:37.458735+00:00	recovery	UI 结束不作为内容恢复通过	两对照只选择 BACKUP，MAIN 投影不同于官方	evidence/recovery-final-comparison.json	恢复硬门槛未关闭
+2026-11-02T07:16:37.458735+00:00	records	只计独立完成收据	五正例完整 552 B 与两个独立负例通过	evidence/repair-final-tests.json	首次八行/高亮仍 OPEN
+2026-11-02T07:16:37.458735+00:00	media	保留精确介质供快照重放	所有官方文件逐字节相同，原 FAT 状态不改写	evidence/recovery-media-audit.json	5 份去重介质仅放 local；TMP 将删除
+2026-11-02T07:30:40.737089+00:00	recovery-origin	单列起始 NAND 声明范围	MAIN 冷启动映像不是完整在机 NAND 的替代	evidence/recovery-media-audit.json	反射页相同；原生后续元数据另计；完整恢复仍未关闭

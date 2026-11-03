@@ -1,0 +1,5 @@
+/local/
+/build/
+/examples/*.DAT
+/examples/tables/
+__pycache__/

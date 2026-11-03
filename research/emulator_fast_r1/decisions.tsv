@@ -1,0 +1,3 @@
+ts	phase	decision	why	evidence	result
+2026-11-02T06:47:00Z	native	Extend from clock migration to complete native machine execution	New approved scope requires no Python device execution inside run	runs/profile-native-python.txt	open
+2026-11-02T07:48:00Z	native	Retain GNU scalar semantics and move modeled devices and deadlines into one C run	Remove repeated Python scheduling while preserving full state types	runs/whole-native-r2.json	1M 10M 50M exact, zero Python callbacks

@@ -1,0 +1,9 @@
+import{readFile,writeFile}from'node:fs/promises';import{createHash}from'node:crypto';import{launchPinnedChromium}from'/Users/wu/.codex/playwright-runtime/runtime.mjs';
+const root='/Volumes/Workspace/Scratch/tmp/projectricoh/review-studio-v2-r3';process.env.TMPDIR=root;const ready=JSON.parse(await readFile(root+'/server-ready.json','utf8'));const base=`http://127.0.0.1:${ready.port}`;if(ready.port===49667)throw Error('forbidden');
+const b=await launchPinnedChromium({env:{...process.env,TMPDIR:root}});
+try{const p=await b.newPage();await p.goto(ready.url);const photos=await(await p.request.get(base+'/api/photos',{headers:{'X-GXR-Token':'independent-review-browser'}})).json();const id=photos.find(x=>x.name==='R8051219').id;
+const url=base+`/api/photos/${id}/render?stage=uncropped&size=preview`;const body={geometry:{vertical:13},recipe:null,adjust:null,curve:null,frame:{style:'none'},stamp:{enabled:false}};
+const wait=p.waitForResponse(r=>r.url()===url&&r.request().method()==='POST');
+const browserBody=await p.evaluate(async({url,body})=>{const r=await fetch(url,{method:'POST',headers:{'X-GXR-Token':'independent-review-browser','Content-Type':'application/json'},body:JSON.stringify(body)});const buf=new Uint8Array(await r.arrayBuffer());let text='';for(let i=0;i<buf.length;i+=16384)text+=String.fromCharCode(...buf.subarray(i,i+16384));return btoa(text);},{url,body});const response=await wait;const driverBody=await response.body();
+await writeFile(root+'/evidence/latency-browser-body-r3.jpg',Buffer.from(browserBody,'base64'));await writeFile(root+'/evidence/latency-driver-body-r3.jpg',driverBody);console.log(JSON.stringify({browserBytes:Buffer.from(browserBody,'base64').length,driverBytes:driverBody.length,browserHash:createHash('sha256').update(Buffer.from(browserBody,'base64')).digest('hex'),driverHash:createHash('sha256').update(driverBody).digest('hex')}));
+}finally{await b.close();}

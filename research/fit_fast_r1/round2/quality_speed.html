@@ -1,0 +1,17 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{font-family:var(--font-sans);color:var(--foreground)}html,body{margin:0;background:transparent}*{box-sizing:border-box}
+p{font-size:14px;line-height:1.65;margin:0 0 14px}.note{font-size:12px;color:var(--muted-foreground,var(--foreground));margin-top:15px}
+.legend{display:flex;gap:18px;font-size:12px;margin:6px 0 18px}.legend span:before{content:"";display:inline-block;width:10px;height:10px;margin-right:6px;background:var(--chart-1)}.legend span:last-child:before{background:var(--chart-2)}
+.metric{display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(90px,2fr) 86px;align-items:center;gap:14px;margin:16px 0}.label{font-size:13px;line-height:1.5}.bars{display:grid;gap:7px}.line{height:12px;background:var(--secondary);border-radius:2px}i{display:block;height:100%;border-radius:2px}.ref{background:var(--chart-1)}.new{background:var(--chart-2)}.value{font-size:13px;line-height:1.9;text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:460px){.metric{grid-template-columns:112px minmax(50px,1fr) 76px;gap:8px}.label{font-size:11px}.value{font-size:12px}}
+</style><body>
+<p>质量门通过：1,530 项训练不差，26,010 条逐照片 ΔE00 与参考相同，质量夹具无新增失败。</p>
+<div class="legend"><span>冻结参考</span><span>条件回退后端</span></div>
+<div class="metric"><div class="label">照片中位 ΔE00 的中位数</div><div class="bars"><div class="line"><i class="ref" style="width:83.333%"></i></div><div class="line"><i class="new" style="width:83.333%"></i></div></div><div class="value">1.216446<br>1.216446</div></div><div class="metric"><div class="label">照片中位 ΔE00 的 P95</div><div class="bars"><div class="line"><i class="ref" style="width:83.333%"></i></div><div class="line"><i class="new" style="width:83.333%"></i></div></div><div class="value">2.793639<br>2.793639</div></div>
+<p class="note">26,010 条逐照片评分，每张照片等权；这里汇总逐照片的中位 ΔE00。结果为电脑模型预测。</p>
+<p class="note">尚无通过负载门的完整配对，超载计时仅保留为诊断。</p>
+<p class="note">所有完整配对的原始活动 CLI 墙钟如下；被排除的轮次只作诊断，全部保留。</p>
+<div class="metric"><div class="label">轮次 1 / 分批 1<br>超载排除</div><div class="bars"><div class="line"><i class="ref" style="width:48.922%"></i></div><div class="line"><i class="new" style="width:23.944%"></i></div></div><div class="value">374.7 s<br>183.4 s</div></div><div class="metric"><div class="label">轮次 2 / 分批 1<br>超载排除</div><div class="bars"><div class="line"><i class="ref" style="width:44.176%"></i></div><div class="line"><i class="new" style="width:24.585%"></i></div></div><div class="value">338.4 s<br>188.3 s</div></div><div class="metric"><div class="label">轮次 3 / 分批 1<br>超载排除</div><div class="bars"><div class="line"><i class="ref" style="width:54.758%"></i></div><div class="line"><i class="new" style="width:31.911%"></i></div></div><div class="value">419.4 s<br>244.4 s</div></div><div class="metric"><div class="label">轮次 4 / 分批 1<br>超载排除</div><div class="bars"><div class="line"><i class="ref" style="width:64.933%"></i></div><div class="line"><i class="new" style="width:37.284%"></i></div></div><div class="value">497.4 s<br>285.6 s</div></div><div class="metric"><div class="label">轮次 5 / 分批 1<br>超载排除</div><div class="bars"><div class="line"><i class="ref" style="width:90.909%"></i></div><div class="line"><i class="new" style="width:47.430%"></i></div></div><div class="value">696.3 s<br>363.3 s</div></div>
+<p class="note">未形成合格整轮倍数；尚无通过负载门的完整配对，原始计时仅作诊断。90 个不同配置、5 次完整配对的原始计时比为 1.839，不外推整轮。 两边均 2 个单线程数值进程、nice=15；任一采样负载超过 10 的配对均排除。</p>
+</body></html>

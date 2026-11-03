@@ -1,0 +1,65 @@
+# 读数判读
+
+屏幕行内只放原始十六进制。没有字段名和分隔符；按下表的固定位置拆分。第 1 行固定为页码、打开次数低 16 位和质量字母，例如 `F0003 S`。所有页恰好 8 行，各行最多 8 个 ASCII 字符。
+
+`S` 表示两遍 50 字段向量相等，`C` 表示不同；显示第二遍。两遍不构成原子快照，也不能排除 ABA。`U` 只出现在 E 页。
+
+| 行 | A：生命周期 | B：等待与上下文 | C：媒体、USB 与选择 | D：句柄 | F：常驻与单元 |
+| --- | --- | --- | --- | --- | --- |
+| 2 | FC38，8 位 | T6 wait，8 位 | MODE，8 位 | HIGH，8 位 | state 2 位、inflight 2 位、打开次数高 16 位 4 位 |
+| 3 | C1A8，8 位 | T6 timer，8 位 | UI0，8 位 | C0 mode 4 位、Q 4 位 | flags，8 位 |
+| 4 | C19C，8 位 | T8 wait，8 位 | UI1，8 位 | C0 position，8 位 | check_failure，8 位 |
+| 5 | C560，8 位 | T8 timer，8 位 | DIV callback，8 位 | C1 mode 4 位、Q 4 位 | fault，8 位 |
+| 6 | C1BC 4 位、C208 2 位、T8 state 2 位 | T28 wait，8 位 | CTX28，8 位 | C1 position，8 位 | diag_early，8 位 |
+| 7 | T8 event 2 位、flags 2 位、opcode 4 位 | T28 timer，8 位 | M28 opcode 4 位、DIV 2 位、CARD mirror 2 位 | S0 a、b、mode，各 2 位 | rpc_ready，8 位 |
+| 8 | PAUSE，8 位 | CTX8，8 位 | error、selected volume、selected file，各 2 位 | S1 a、b、mode，各 2 位 | unit ready，8 位 |
+
+F2 末四位与页首四位拼成完整 32 位打开次数，高位在前。例如 F2 为 `03010001`、页首为 `F0002 S`，则 state=`03`、inflight=`01`、次数=`00010002`。次数只统计真正进入本 DAT 的 H01；常驻提前返回不增加它。重启或重新载入 DAT 会重置次数。
+
+| 字段 | 固定 RAM 地址与宽度 | 判读范围 |
+| --- | --- | --- |
+| A2 FC38 | `2056FC38:u32` | 与 C1A8、C19C、C560 对照，偏离静置预期可否定简单空闲假设。零不授予写资格。 |
+| A3 C1A8 | `201BC1A8:u32` | 记录原值；主机镜像初值不能当真机基线。 |
+| A4 C19C | `201BC19C:u32` | 可观察单张或 RAW+JPEG 的计数变化；没捕获中间值不表示该阶段不存在。 |
+| A5 C560 | `201BC560:u32` | 与 C19C、Task 28 等待和上下文一起看。 |
+| A6 C1BC、C208 | `201BC1BC:u16`、`201BC208:u8` | C208 可残留 FF、01、10，不预设必须为零。 |
+| A6/A7 T8 state、event、flags、opcode | `204F41E8:u8`、`204F41E9:u8`、`204F41EA:u8`、`204F41BA:u16` | 原厂接收缓冲可能保留旧值。state=1 不证明 handler 已返回，旧 opcode 不表示当前正在处理它。 |
+| A8 PAUSE | `201BC1D0:u32` | 记录原值，与 B 页的等待状态对照。 |
+| B2/B3 T6 wait、timer | `200D25A8:u32`、`200D2238:u32` | 当前 RTOS 原始状态和 timer slot，不是队列排空或过去无等待的证明。 |
+| B4/B5 T8 wait、timer | `200D25B0:u32`、`200D2240:u32` | 与 A 页 T8 生命周期状态区分。 |
+| B6/B7 T28 wait、timer | `200D2600:u32`、`200D2290:u32` | 变化可支持等待相关推断，不能单凭它定位具体等待对象。 |
+| B8 CTX8 | `204F41D4:u32` | 仅显示固定缓冲中的原始字，不跟随指针。 |
+| C6 CTX28、C7 M28 | `2057D858:u32`、`2057D852:u16` | 与 CTX8、A 页计数对照；旧缓冲和对象回收限制身份解释。 |
+| C2 MODE | `20412AB8:u32` | 用实拍前后及可进入的 USB 模式建立对应，不直接解码为卷所有权。 |
+| C3/C4 UI0、UI1 | `205E4A28:u32`、`205E4A2C:u32` | 原厂模式转换候选字。稳定不证明 USB 没有块访问。 |
+| C7 DIV、C5 callback | `205D9B70:u8`、`203AAABC:u32` | DIV=1 是一项分流条件；不调用 callback，也不读其指向对象。DIV=0 不证明未接管卡。 |
+| C7 CARD mirror | `204128B0:u8` | 原厂卡检测镜像，实际值与卡状态仍需观察；不是已证实的媒体 generation。 |
+| C8 error | `204C9209:u8` | 非零保留并解释，不清除。 |
+| C8 selected volume、file | `204C9206:u8`、`204C9207:u8` | 共享临时选择，不是诊断持有的 fd。 |
+| D2 HIGH | `204C8668:u32` | 0 不证明低层空闲；与 S0/S1 对照。 |
+| D7 S0 a、b、mode | `204C8C7C:u8`、`204C8C7E:u8`、`204C8C7F:u8` | a、b 都为 FF 才符合该槽空闲哨兵。一次非空不能直接判成泄漏。 |
+| D8 S1 a、b、mode | `204C8F40:u8`、`204C8F42:u8`、`204C8F43:u8` | 同上；HIGH=0 而槽非空可否定“高层零即健康”。 |
+| D3/D4 C0 mode、Q、position | `204C86EC:u16`、`204C86EE:u16`、`204C86F4:u32` | 空闲缓存可留旧值；诊断没有打开 fd，不据此授予查询或写资格。 |
+| D5/D6 C1 mode、Q、position | `204C86FC:u16`、`204C86FE:u16`、`204C8704:u32` | 同上。 |
+| F2 state、inflight | `20054705:u8`、`20054706:u8` | 成功进入 DAT 通常是 state=03、inflight=01。这里的 01 是当前调用本身，不是卡死结论。 |
+| F3 flags | `200547D4:u32` | RF_BUSY=`00000008`，RF_PUBLISHED=`00000080`。保留全部 32 位。其余位见下表。 |
+| F4 check_failure | `20054798:u32` | 0 为该次 rv_check 未报错；1..7 分别为 ROOT、SESSION、HEAP、HEADER、CODE、UNIT、UI。成功进入前 rv_check 会更新它。 |
+| F5 fault | `2005475C:u32` | 原始有符号状态字按 32 位十六进制显示。固定 resident 退役时写 RV_STALE，即 `FFFFFFFB`；退役后本 DAT 通常不再被调用。 |
+| F6 diag_early | `200547E8:u32` | 结构中保留此字段，但当前 `resident_v36/resident/hooks.c` 不写它。零不能说明未发生提前返回，也不能定位门禁。 |
+| F7 rpc_ready | `200D7FD8:u32` | 原厂 `2009359C` 的 RAM 来源。冷启动为零时 resident 不载入 DAT；已载入后可以在诊断里观察到零。 |
+| F8 unit ready | `2040F804:u32` | resident 载入门禁使用的另一就绪字，仅记录原值。 |
+
+| flags 位 | 含义 |
+| --- | --- |
+| `01` | RF_STOP。 |
+| `02` | RF_SD。 |
+| `04` | RF_UNCERTAIN。 |
+| `08` | RF_BUSY。 |
+| `10` | RF_OWNER，服务调用中的所有者标志。 |
+| `20` | RF_ATTEMPTED。 |
+| `40` | RF_QUARANTINE。 |
+| `80` | RF_PUBLISHED。 |
+
+常驻根基址 `20054700` 由 `resident_v36/local/resident/build/resident.map` 的 `.root` 确认；偏移来自同目录源码 `resident/resident.h`，生成的 `diag_fields.h` 用 `_Static_assert` 核对偏移。两项就绪地址还由 `resident/loader.c` 的注释和实际内联 load 确认。
+
+如果刚拍完第一次打开仍是原厂 7 行，那次没有诊断样本。后一次 F 页只能描述后一次进入时的 RAM，不能恢复前一次门禁或拍摄过程的历史。所有计数、上下文和模式对应都用于观察与否证，不构成写卡或存储互斥的充分条件。

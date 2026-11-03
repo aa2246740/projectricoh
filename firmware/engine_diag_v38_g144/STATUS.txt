@@ -1,0 +1,7 @@
+Generation 144. Read-only diagnostic DAT for the v3.8 body (resident build id 79d8e2a2...): readings on the 28mm
+when the 8-row page is refused, shown on the stock Image list as an 8-row list so that the fixed resident's H06/H08
+guard (early(), rows==8 with RF_PUBLISHED) and its H07 close stay in force. Copy of engine_diag_v38_g143; only
+candidate/containers/product/diag.c changed (no load-time page, direct glyph conversion, two buffers, saved
+label word + row count + cursor). Services unchanged from gen 142.
+  build_diag.py (TMPDIR=/Volumes/Workspace/Scratch/tmp/projectricoh/unit28-stock-r1)
+Acceptance and report: research/unit28_stock (accept_diag144.py, REPORT.md). Package: firmware/package_v38_diag144.

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ricoh GXR 配方入口比较</title>
+<style>
+body{margin:0;color:var(--foreground);font-family:var(--font-sans);line-height:1.55}
+p{margin:0 0 16px}small{color:var(--muted-foreground)}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th,td{text-align:left;vertical-align:top;padding:12px 10px;border-bottom:1px solid var(--border)}
+th:first-child,td:first-child{padding-left:0;width:25%}
+th:last-child,td:last-child{padding-right:0}
+th{font-weight:500;color:var(--muted-foreground)}
+strong{font-weight:600}code{font-family:var(--font-mono);white-space:nowrap}
+.label{display:none}.note{margin-top:14px;margin-bottom:0}
+@media(max-width:520px){thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}table,tbody,tr,td{display:block}tr{border-bottom:1px solid var(--border);padding:12px 0}td,td:first-child,td:last-child{border:0;padding:4px 0;width:auto}td:not(:first-child){display:grid;grid-template-columns:72px 1fr;gap:8px}.label{display:block;color:var(--muted-foreground)}td:first-child{margin-bottom:4px}}
+</style>
+<p><strong>ADJ 的原厂画法最适合 16 项配方。</strong><br><small>静态研究结论；入口、预览和四个曝光档位尚未真机验证。</small></p>
+<table aria-label="三个配方入口的改动比较">
+<thead><tr><th>入口</th><th>原厂可复用</th><th>必须补齐</th></tr></thead>
+<tbody>
+<tr><td><strong>A · ADJ<br>推荐</strong></td><td><span class="label">复用</span><span>每屏 9 行、滚动、文字和按键分派</span></td><td><span class="label">改动</span><span>两处设置提交、7 项附加表、Fn2、单动作入口</span></td></tr>
+<tr><td><strong>B · Recall</strong></td><td><span class="label">复用</span><span>5 个来源、13 字段复制与编辑值转换</span></td><td><span class="label">改动</span><span>16 项滚动、SD 来源、WB 两轴、即时应用</span></td></tr>
+<tr><td><strong>C · 卡槽扩展</strong></td><td><span class="label">复用</span><span>卡文件校验、运行时名字与六行绘制</span></td><td><span class="label">改动</span><span>至少 12 处边界、相邻 RAM、状态栈、分页与动作</span></td></tr>
+</tbody></table>
+<p class="note"><small>配方编号独立保存。应用时使用原厂 Setting1 枚举 <code>04</code>，另写 13 个色彩字段与 WB 两轴。</small></p>
+<script>requestAnimationFrame(()=>console.log(JSON.stringify({width:innerWidth,horizontalOverflow:document.documentElement.scrollWidth>innerWidth,rows:document.querySelectorAll('tbody tr').length})));</script>
+</html>

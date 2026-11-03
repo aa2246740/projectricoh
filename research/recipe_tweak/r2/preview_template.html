@@ -1,0 +1,54 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>配方微调第二轮 · 模型模拟，非实拍</title>
+<style>
+:root{--paper:#f4f3ef;--ink:#20211f;--line:#a7aaa3;--surface:#fff;--notice:#fff6e9;--accent:#91451f;--small:14px;--body:16px;--title:24px;--space:8px;font-family:system-ui,sans-serif;background:var(--paper);color:var(--ink);font-size:var(--body);line-height:1.65}
+*{box-sizing:border-box}body{margin:auto;max-width:1360px;padding:24px}h1{font-size:var(--title);line-height:1.3;margin:0 0 16px}h2{font-size:20px;margin:24px 0 12px}p{margin:8px 0 16px;overflow-wrap:anywhere}.notice{border-left:4px solid var(--accent);padding:12px 16px;background:var(--notice)}
+.controls{display:flex;flex-wrap:wrap;gap:16px;margin:24px 0 16px}label{display:flex;gap:8px;align-items:center;flex-wrap:wrap}select,button{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:4px;min-height:44px;min-width:44px;padding:8px 12px;cursor:pointer;max-width:100%}
+button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}button:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}.steps{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}figure{margin:0;min-width:0}figure img{display:block;width:100%;height:auto;background:var(--line)}figcaption{margin:8px 0 16px;overflow-wrap:anywhere}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}.strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:16px 0 24px}.strip button{padding:0;min-width:0;border:1px solid var(--line);border-radius:0}.strip img{display:block;width:100%;height:auto}.strip span{display:block;padding:8px;font-variant-numeric:tabular-nums}.measure{border-top:1px solid var(--line);padding:16px 0;min-height:90px}details{margin:24px 0}summary{cursor:pointer;min-height:44px;padding:8px 0}table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:var(--small)}th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right}th:first-child,td:first-child{text-align:left}.source{display:flex;gap:16px;align-items:start}.source img{width:240px;max-width:100%;height:auto}.small{font-size:var(--small)}.muted{color:#52564f}.tablewrap{max-width:100%;overflow-wrap:anywhere}
+@media(max-width:700px){body{padding:16px}.pair{grid-template-columns:1fr}.strip{gap:8px}.strip span{font-size:var(--small);padding:8px 2px}.source{display:block}.controls{gap:12px}table th,table td{padding:8px 4px}h1{font-size:22px}}
+</style></head><body><main>
+<h1>配方微调 · 第二轮</h1>
+<p class="notice" data-ud-check="notice">模型模拟，非实拍。默认面板 −5…+5；±8 展示扩展效果。冷暖、色调仅用近似 RGB 增益示意，原生两轴的轴序、正负方向和实际增益尚未确认。</p>
+<div class="controls" data-ud-check="controls"><label>实景<select id="scene"></select></label><label>配方<select id="recipe"><option>01</option><option>02</option><option>03</option><option>05</option><option>06</option></select></label><label>参数<select id="parameter"></select></label><label>整数档<select id="alllevels"></select></label></div>
+<p id="stepnote"></p><div class="steps" id="levels"></div>
+<div class="pair" data-ud-check="comparison"><figure><img id="base" width="320" height="213" alt="此配方默认档，模型模拟，非实拍"><figcaption>此配方默认 0 档 · 模型模拟，非实拍</figcaption></figure><figure><img id="chosen" width="320" height="213" alt="所选微调档，模型模拟，非实拍"><figcaption id="caption"></figcaption></figure></div>
+<div id="metrics" class="measure" aria-live="polite"></div>
+<h2>单控九档对照</h2><p class="small muted">−5、−3、−1、0、+1、+3、+5 是默认面板样例；±8 是扩展示例。下方每张图片均为模型模拟，非实拍。选择图片可与默认档并排查看。</p><div class="strip" id="strip"></div>
+<details open><summary>相邻整数档 ΔE00</summary><p class="small">同一配方的五张场景等权平均。全图包含模型裁剪像素；作用区按默认图固定，缺少该区域的场景不计入区域均值。1→3 不算相邻档。</p><p id="regionnote" class="small"></p><div class="tablewrap"><table><thead><tr><th>档位</th><th>全图</th><th>作用区</th><th>场景数</th></tr></thead><tbody id="adjacent"></tbody></table></div></details>
+<details><summary>源照片与模型限制</summary><div class="source"><img id="source" width="320" height="213" alt="源 GXR JPEG，仅识别素材，非微调后实拍"><p id="sourceinfo" class="small"></p></div>
+<p>三张沿用首轮素材；新增两张是同组苹果静物的近景，有色物体占比更高。没有新增户外、人像或独立拍摄题材。</p>
+<p>直接从 DNG CFA 扣黑电平、按白电平归一，面积缩图后使用 AsShotNeutral，固定增益 1。所有档位共用同一输入，未按配方匹配曝光。模型固定 ISO 200 标定，源 ISO 另列。06 沿用 R=C、G=B5、B=D 的三通道解释；未模拟去马赛克细节、锐度、降噪或相机完整处理链。</p>
+<p>冷暖正值偏琥珀，色调正值偏品红。示意增益为 2 的分数次幂：RGB 对数增益分别为 w/12+t/24、−t/12、−w/12+t/24。此处的 1/12 不是已测原生 WB 灵敏度，也不表示实际色温 K。03 仍为黑白，WB 只会通过通道混合改变明度。</p>
+<p>高光、阴影不能恢复源 DNG 已裁剪的信息。±8 可出现极端肩趾、多个输出节点同值、颜色系数受限和更多 RGB 出界。原 C 接受条目不等于相机已执行或画质已经验收。</p></details>
+</main><script>
+const DATA=__DATA__;
+const $=id=>document.getElementById(id),signed=v=>v>0?'+'+v:''+v,fmt=v=>v===null?'无样本':v.toFixed(3);
+let currentLevel=0;
+for(const s of DATA.scenes)$('scene').add(new Option(s.title,s.id));
+for(const [key,label] of Object.entries(DATA.labels))$('parameter').add(new Option(label,key));
+for(let n=-8;n<=8;n++)$('alllevels').add(new Option(signed(n),n));
+const notes={contrast:'正值压暗中灰以下、提亮中灰以上；端点与此配方中灰固定。',saturation:'每档请求约 ×1.25 的颜色系数增益。大档位会分配到矩阵色度项，并受原生系数上限限制；不是最终 Lab 色度倍率。',highlight:'正值提亮中灰以上；白端点与此配方中灰固定。',shadow:'正值提亮中灰以下；黑端点与此配方中灰固定。',warmth:'逻辑正值偏琥珀、负值偏蓝；一档对应原生 A-B 轴一格。图像是近似增益示意，轴绑定尚未核实。',tint:'逻辑正值偏品红、负值偏绿；一档对应原生 G-M 轴一格。图像是近似增益示意，轴绑定尚未核实。'};
+const regions={contrast:'全图',saturation:'默认 C* ≥ 10 的有色区',highlight:'默认 Y ≥ 118 的亮部',shadow:'默认 Y < 118 的暗部',warmth:'默认 C* < 10 且 20 ≤ Y ≤ 235 的中性区',tint:'默认 C* < 10 且 20 ≤ Y ≤ 235 的中性区'};
+function rows(){return DATA.frames.filter(f=>f.scene===$('scene').value&&f.slot===$('recipe').value&&f.parameter===$('parameter').value)}
+function show(){
+ const f=rows(),p=$('parameter').value,slot=$('recipe').value,zero=f.find(x=>x.level===0),chosen=f.find(x=>x.level===currentLevel);
+ $('alllevels').value=currentLevel;$('base').src=zero.image;$('chosen').src=chosen.image;
+ $('caption').textContent=`${slot} · ${DATA.labels[p]} ${signed(currentLevel)} 档 · 模型模拟，非实拍${chosen.WB_approximate?' · WB 近似':''}`;
+ $('stepnote').textContent=slot==='03'&&p==='saturation'?'03 为真黑白，饱和停用，所有档位相同。':notes[p];
+ $('levels').replaceChildren();$('strip').replaceChildren();
+ for(const level of DATA.display){const x=f.find(v=>v.level===level);let b=document.createElement('button');b.type='button';b.textContent=signed(level)+(Math.abs(level)===8?' 扩展':'');b.setAttribute('aria-pressed',level===currentLevel);b.onclick=()=>{currentLevel=level;show()};$('levels').append(b);
+ let thumb=document.createElement('button');thumb.type='button';thumb.setAttribute('aria-pressed',level===currentLevel);thumb.onclick=b.onclick;
+ const im=document.createElement('img');im.src=x.image;im.width=320;im.height=213;im.alt=`${slot} ${DATA.labels[p]} ${signed(level)} 档，模型模拟，非实拍`;
+ const cap=document.createElement('span');cap.textContent=signed(level)+' 档'+(Math.abs(level)===8?' · 扩展':'');thumb.append(im,cap);$('strip').append(thumb);}
+ const a=chosen.adjacent_previous,info=chosen.saturation;
+ $('metrics').textContent=(a?`本图 ${currentLevel-1}→${currentLevel}，全图 ΔE00 ${fmt(a.full.mean)}，作用区 ${fmt(a.region.mean)}，区域像素 ${a.region.n}。`:'−8 是扩展下限，没有前一整数档。')+` 模型 RGB 出界像素 ${(chosen.model_rgb_clip_fraction*100).toFixed(2)}%，默认 ${(chosen.default_rgb_clip_fraction*100).toFixed(2)}%。`+(info.matrix_headroom_reached?' 饱和请求超过可用系数空间，本档已经受限。':'')+(chosen.WB_approximate?' WB 为近似模拟。':'');
+ const agg=DATA.aggregates.find(a=>a.slot===slot&&a.parameter===p);$('adjacent').replaceChildren();
+ for(const a of agg.adjacent){const tr=document.createElement('tr');for(const text of [`${a.from_level}→${a.to_level}`,fmt(a.full_mean),fmt(a.region_mean),String(a.region_scene_count)]){const td=document.createElement('td');td.textContent=text;tr.append(td)}$('adjacent').append(tr)}
+ $('regionnote').textContent='作用区：'+regions[p]+'。';
+ const s=DATA.scenes.find(s=>s.id===$('scene').value);$('source').src=s.source_image;$('sourceinfo').textContent=`${s.title} · ${s.path} · 源 ISO ${s.iso}。这是源 JPEG，仅识别素材；不是微调后实拍，也不作为 stock 真值。`;
+}
+for(const id of ['scene','recipe','parameter'])$(id).onchange=()=>{currentLevel=0;show()};
+$('alllevels').onchange=()=>{currentLevel=Number($('alllevels').value);show()};
+show();console.log('recipe-tweak-r2',DATA.frames.length,'records',DATA.scenes.length,'scenes');
+</script></body></html>

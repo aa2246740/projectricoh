@@ -1,0 +1,148 @@
+"""Write the Chinese handoff from the actual final-candidate evidence."""
+from pathlib import Path
+from datetime import datetime,timezone
+import json
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from common import *
+
+def read(path):
+    return json.loads(path.read_text()) if path.exists() else {}
+
+def main():
+    pin=sha(DAT.read_bytes());package=read(OUT/'evidence/package.json')
+    code=read(OUT/'evidence/codegen-safety.json')
+    incomplete=[];rows=[]
+    users=read(OUT/'evidence/user-tool.json')
+    groups=('transitions','values','suite','safety','locked','nested','cutpoints','view-reentry','users','project-boundary','labels','official-half','lock-exits')
+    labels={'transitions':'逐屏六键','values':'全部开放档位、边界、Default、返回', 'suite':'历次九个反例',
+            'safety':'原生安全八例','locked':'锁定八例','nested':'锁定重入切点','cutpoints':'IRQ 开启时视图切换',
+            'view-reentry':'七种视图重入','users':'只读分组和条目','project-boundary':'M32R 档位和虚拟窗口','labels':'黑白标签和空行','official-half':'官方原始半按','lock-exits':'锁定后退出与保持模式'}
+    for group in groups:
+        cells=[]
+        for unit in ('50mm','28mm','mount'):
+            names={'suite':f'suite-124-{unit}.json','nested':f'lock-nested-124-{unit}-record_failure_return-after_update_restore-before_redraw-row_draw.json',
+                   'cutpoints':f'lock-cutpoints-{unit}-irq-enabled.json','lock-exits':f'lock-exits-124-{unit}.json'}
+            path=OUT/'evidence'/names.get(group,f'{group}-{unit}.json')
+            if group=='official-half':path=OUT/'local'/f'official-half-{unit}-with-hooks.json'
+            value=read(path);status=value.get('status','INCOMPLETE')
+            if status.startswith('PASS'):status='PASS'
+            expected=users.get('fixture_sha256') if group=='users' else pin
+            if value.get('dat_sha256')!=expected:status='WRONG_ARTIFACT'
+            if group=='suite' and value.get('results') and all(x['wait_status']==0 for x in value['results']):status='PASS'
+            if status=='PASS':
+                counts={'transitions':42,'values':7,'suite':9,'safety':8,'locked':8,'nested':40,'cutpoints':16,'view-reentry':70,'lock-exits':24}
+                actual=value.get('cases',value.get('results'))
+                if group in counts and (not isinstance(actual,list) or len(actual)!=counts[group]):
+                    status='WRONG_CASE_COUNT'
+                if group=='users' and len(value.get('entry_names',[]))!=25:status='WRONG_USER_COUNT'
+                if group=='project-boundary' and (value.get('level_cases')!=1693 or value.get('window_cases')!=8686):status='WRONG_BOUNDARY_COUNT'
+            if status!='PASS':incomplete.append(f'{unit}:{group}:{status}')
+            cells.append(status)
+        rows.append('| '+labels[group]+' | '+' | '.join(cells)+' |')
+    for name in ('rpc-audit','rpc-users','native-edges','memory-budget'):
+        if read(OUT/'evidence'/(name+'.json')).get('status')!='PASS':incomplete.append(name)
+    if code.get('status')!='PASS_SCOPED_FOUR_CATEGORIES':incomplete.append('编译码四类检查')
+    reproduction=read(TREE/'candidate/local/reproduce124/reproduction.json')
+    if reproduction.get('status')!='PASS' or reproduction.get('sha256')!=pin:incomplete.append('隔离重构复现')
+    protected=read(OUT/'inputs-before.json')
+    changed=[name for name,digest in protected.items() if not (ROOT/name).is_file() or sha((ROOT/name).read_bytes())!=digest]
+    if changed:incomplete.append('保护输入变化')
+    fixed=ROOT/'firmware/package_v36_g120b/SD_ROOT'
+    assert len(list((PACKAGE/'SD_ROOT').iterdir()))==30
+    assert all(path.read_bytes()==(fixed/path.name).read_bytes() for path in (PACKAGE/'SD_ROOT').iterdir() if path.name!='GXRCE.DAT')
+    assert package.get('sha256')==pin and package.get('generation')==124
+    layout=read(TREE/'candidate/local/full-r13/layout.json')
+    assert len(DAT.read_bytes())<=65536 and layout['file_bytes']+layout['bss_bytes']<=114688
+    save('evidence/final-validation.json',dict(status='PASS' if not incomplete else 'INCOMPLETE',
+        dat_sha256=pin,missing_or_failed=incomplete,protected_inputs=len(protected),changed_protected=changed,
+        fixed_files_identical=29,SD_ROOT_files=30,source='Final artifact only. Archived intermediate results are excluded.',
+        start_UTC=START_UTC,deadline_UTC=DEADLINE_UTC,finished_UTC=datetime.now(timezone.utc).isoformat(),
+        knobs_v2_r2_integrated=False,camera_acceptance=False))
+    first='可以交复审' if not incomplete else '有缺陷：'+ '；'.join(incomplete)
+    report=f'''{first}
+
+gen 124 为 `firmware/package_v36_g124/SD_ROOT/GXRCE.DAT`，{len(DAT.read_bytes()):,} 字节，SHA256 `{pin}`。本轮只做主机验证，没有操作相机、存储卡或网络，没有启动子代理。交复审不表示可以上卡。
+
+界面与数据
+
+L1 有十个逻辑项目，顺序为八个配方、` DISP:Tw`、` MyRec`。配方卡、逐项列表、数值页、分组、条目和 ERR 都使用同一个八行物理窗口。短视图补空白，空白不可选；长视图由 DAT 重绑文字。标题行用 `<` 返回，逐项列表按原型记住最后经过的项目所在配方卡行。仅进入用户组不改变效果，移动或 DISP 选中条目才预览。
+
+原生行数在自有发布路径中强制为八。基线服务上限为 16，所以 19 行不能直接发布；最终服务进一步拒绝所有非八行形状。原生首尾按键确实产生循环后的 H08，DAT 能消化并在逻辑端点停住，原生先绘制 1→8 / 8→1、DAT 再绘制回端点的记录见 [native-edges.json](evidence/native-edges.json)。`uv_window()` 的最终 M32R 检查覆盖 1–33 个逻辑项目，包括 19。数值页进入时光标位于当前值，正数在上，上键为加；`!` 位于标签后的固定位置，零显示为 `Cont   0`。
+
+原生圆点仍与光标同行，不能独立隐藏；应用和调整状态使用文字 `>`、`*`。所有发布文字均为 1–8 个 ASCII 字符，补空白使用一个空格，避免原文本服务拒绝零长度字符串。实体 LCD 字形与像素宽度未验收。
+
+本轮接通 Cont、High、Shad、Satu，开放 −5…+5。03 不显示 Satu。当前数值页为 11 档；±6…±9 在接口边界拒绝，没有用重复映射凑成 19 档。基线数据三单元各八个底子共 31,944 个 C/H/S 联合状态的相邻单轴输出均不同，彩色 Satu 的相邻档也不同。这是九行字节层的无相邻死档检查，不是成像可见性验收。
+
+项目顺序、范围和默认值位于追加的 GXUI v1 数据。generation 为 124，第七段保留 1,408 字节旧 GXTM，追加固定 1,984 字节，其中预留 32 个只读用户条目。每条包含底子、十一档位和生成名字。默认包没有用户条目；32 条变体通过 Mac 工具生成后单独验收。相机只读 resident 已加载的 DAT，不为此调用文件服务。
+
+统一接口和段布局见 [INTERFACE.md](INTERFACE.md)，操作、字母表和 Mac 命令见 [GUIDE.md](GUIDE.md)。事务账本仍使用旧八参数格式，当前四项经适配映射；十一项接口的预留非零值会被拒绝。
+
+knobs v2 r2 未接入
+
+按编排者的优先顺序，本轮交付界面和干净接口。未移植 `research/knobs_v2_r2` 的整数核心、最终剂量表、每配方项目顺序、十个提前到顶方向及 Amount 百分比表，也未声称完成其全单旋钮逐字节输出对比。r2 的 04 无 Amount、Fade 0…+9、03 的 Fade/Filt、矩阵行和 Warmth/Tint、T1 Split 与每配方 20% 或 25% Amount 刻度，均留待下一轮。当前隐藏项的旧占位范围不是 r2 的正式档位表。
+
+安全行为
+
+所有视图包括数值页和 ERR 始终以八行发布，旧十一行面板已退出运行路径。ERR 为第一行短码加七空白行，锁定当次可显示；下次 H01 仍显示。没有 Busy/Retry 屏。H01 无法核对且未锁定时继续回退原生七项，不发布未核对的配方。W 前失败保留最后核对的视图，视图切换 STALE 检查保留。
+
+`deep`、`apply_impl`、`rpc`、T 读写、完整读回、补偿、锁定条件和 `make_plan` 等十二个关键源函数与 gen 123 逐字相同。新 UI 没有新增 S 写入地址，没有文件写能力；原生服务的创建、写入、改名、删除和 mark 拒绝由实际边界检查验证。
+
+中间候选 `886ba0ee…` 曾在 W 后丢失归属时直接释放视图，漏掉当次 `record_failure`。最终 `ig_apply()` 已改为先走原 `finish(status)`，再按归属释放。三单元的 unowned_list、unowned_panel 均需在最终 SHA 上通过，旧反例保留于 `local/history/latch-defect-886ba0eed02c/`。其它中间候选也归档，未并入最终验收。最终 SHA 的首轮验收有两处钩子错误和一处用户列表期望错误：LTO 消除 root 参数后操作码在 r0；方向键在 H08 前先有原生绘制；用户列表从末条滚回 Back 会逐条预览，退出期望应为最后经过条目的 +1，而非此前 Default 的 0。纯函数边界脚本另曾缺少 run 导入，在实际检查前中止；补齐后重新执行。已保留首次失败，再按真实操作码、inflight 切点和逐条预览期望重跑，见 `local/history/test-hook-failures-ebf07faa3c5b/`。
+
+op 3 恢复 IRQ 后立即再次核对归属，失配不调用绘制器。最后检查到原生绘制之间仍不是原子区间：强制在桥入口切走视图，可以进入旧行绘制。证据见 [remaining-window.json](evidence/remaining-window.json)。这项剩余窗口按补充裁决明示保留；没有把零迟到字段写入说成零迟到绘制，也没有声称观察到相机像素。
+
+ERR 对原有原因码作无损短编码，屏上为 `ERR ` 加四位大写 36 进制；不丢失 QQ。码值为 `(((E索引 × 7 + S) × 6 + P) × 256 + QQ)`。解码工具为 `decode_error.py`。
+
+| 原字段 | 短码映射 |
+| --- | --- |
+| E | H01=1、DISP=6、退出=7、方向键=8，依次编码为索引 0、1、2、3。 |
+| S | 0 IDLE、1 T、2 ROWS、3 SETTINGS、4 PREVIEW、5 COMMITTED、6 BROWSING。 |
+| P | 0 OK、1 REJECTED、2 UNCERTAIN、3 STALE、4 IO、5 FAULT。 |
+| QQ | RPC 序号低八位；解码后显示两位十六进制。 |
+
+主机验收
+
+以下表格只统计最终 SHA。原生 UI 由官方构造器与原生按键建立，没有手工预设原生界面值，也没有固定返回的 Image getter。输入故障、直接服务边界与纯编译函数的合成缓冲区另有标注。
+
+| 检查 | 50mm | 28mm | MOUNT |
+| --- | --- | --- | --- |
+{chr(10).join(rows)}
+
+逐屏矩阵每单元 42 项。数值组在 05 底子覆盖四项全部开放档、上下限、两次 DISP、移动取消确认、效果保留和返回行。另核对黑白不同项目与不可选空行。锁定重入每单元实际执行 30 个切点/动作组合；旧 op 2 的 10 个组合因调用被删除而单列，不记作已触发。IRQ 归属切换实际执行八例，旧更新阶段的八例同样单列。每种新增视图均在五个切点分别重入上下键，每单元 70 例，核对整段 S 无新增变化。另移植 gen 123 的 lock_exits，每单元 24 例，覆盖列表/数值页、两个 keep 设置与六种退出方向；原始半按允许原生拍摄任务自身的 S 更新，但 Image 字段与 setter 必须不变，锁定后不得追加 RPC。
+
+用户变体有 32 条，最大组有 25 条，实际走过分组、虚拟滚动、条目卡、临时微调、Default 与退出；DAT 元数据逐字不变，开机仍为纯 04。八个底子的全部单参数 −9…+9 接口接受/拒绝和 33 行窗口由独立的最终 M32R 纯函数检查补充，不冒充 33 行条目列表的相机实测。
+
+Mac 工具通过文本/JSON 等价、定长重建、清空后逐字回到默认 DAT、163 个非法条目拒绝和 CRC/绑定破坏拒绝。ERR 的 43,008 个 E/S/P/QQ 元组全部编码往返。原型 `selftest.js` 只作为参考模型，单独保存，不充当 DAT 验收。
+
+通信流由未修改的 `research/g122_keep_list/audit_records.py` 复核，默认 DAT 与用户变体分开传入，未用哨兵参数；按单元去重后，最终分别为 109 与 3 条完整原始流，零协议失败。首次审计因剩余窗口记录缺少 unit 被拒绝，补齐生产脚本元数据并重新运行了该原生见证和审计器，没有改审计器或屏蔽失败记录。见 [默认流](evidence/rpc-audit.json) 和 [用户变体流](evidence/rpc-users.json)。三单元均须有完整原始流。33 字节行和奇地址的协议半字可覆盖邻字节，W 必须保留最近读回值，没有把它描述成只触及逻辑字节。
+
+编译码与预算
+
+最终 DAT 引擎段、`engine.bin` 和 ELF `.engine` 逐字一致。PIC 平移验证、重定位绑定和五个内嵌跳表的 45 个目标均检查；两处反汇编 unknown 都属于已分类表数据。48 个改动 C 函数的编译载体、四类边界、静态栈及原生证据绑定见 [codegen-safety.json](evidence/codegen-safety.json)。无调用的独立计算包装由 LTO 删除，明确记为消除，未假称执行过。
+
+| 类别 | 边界 |
+| --- | --- |
+| 地址与长度 | 既有九行与 T 映射、552 字节输出；GXUI 固定 24×48 和 32×24；十一参数、八字符、八行边界及实际 M32R 档位/窗口检查。 |
+| 文件操作 | 新适配器没有存储调用；原生变更服务拒绝，实际会话变更计数为零。 |
+| 原生界面写入 | 八行入口硬门、归属/活动页/状态检查及恢复 IRQ 后重查；已知末端调度窗口另记。 |
+| 循环与内存 | 导航最多 16 轮，补偿仍为 4+2，用户最多 32，所有栈帧静态；最大单帧 260 字节。 |
+
+引擎 {layout.get('engine_bytes',0):,} 字节，BSS {layout.get('bss_bytes',0):,} 字节，DAT 加 BSS 为 {layout.get('file_bytes',0)+layout.get('bss_bytes',0):,} 字节，低于 114,688 字节界限。固定 resident 的 DAT 上限为 98,304 字节，引擎上限为 65,536 字节；本轮构建器仍采用更严的 DAT 65,536 字节策略。宿主冷启动记录的 resident 引擎分配为 74,556 字节，原生 UI 快照分配为 1,980 字节，加上保留的 loader 工作区和头部 632 字节，模型启动占用合计 77,168 字节；模型堆范围为 262,144 字节，见 [memory-budget.json](evidence/memory-budget.json)。静态单帧不等于 RTOS 实测栈余量，模型分配不等于相机堆高水位。
+
+完整包有 30 个文件，29 个固定文件与 gen 120b 逐字相同，只替换 GXRCE.DAT。三单元 48 个展开槽位（含旧别名）和默认有效行与 gen 123 相同。隔离输出树重新构建需得到同一 SHA，见 `firmware/engine_v46_ui/candidate/local/reproduce124/reproduction.json`。
+
+已核实的是源码、最终打包字节和原生机器码宿主模型的行为。真实调度频率、栈/堆高水位、LCD、实体按键连发、曝光完成和照片效果未知。没有以主机模型替代相机或存储卡验收。
+
+交付与重跑
+
+源码差异见 [source-change-vs-g123.patch](source-change-vs-g123.patch)。[SHA256SUMS](SHA256SUMS) 以仓库根为基准，覆盖三个新目录与保护输入，排除清单自身。保护输入共 {len(protected)} 项，最终变化 {len(changed)} 项。只写本任务三个新目录，根目录原有的其它执行者改动未处理。
+
+重跑入口见 [REPRODUCE.md](REPRODUCE.md)，逐次运行记录见 `commands.jsonl`，除按任务要求生成的 SD_ROOT 交付包，研究原始字节、反汇编和运行记录均在 `local/`。相机与闪存放行不属于本报告的结论。
+'''
+    (OUT/'REPORT.md').write_text(report)
+    (TREE/'STATUS.txt').write_text(first+'\nGeneration 124 UI framework. Authoritative DAT: firmware/package_v36_g124/SD_ROOT/GXRCE.DAT\nSHA256 '+pin+'\nSee research/g124_ui_v2/REPORT.md. Inherited older scripts are not the gen 124 acceptance entrypoints.\n')
+    (PACKAGE/'DELIVERY.md').write_text('gen 124 UI framework host candidate\n\nSHA256 `'+pin+'`. SD_ROOT contains 30 files; 29 fixed files match gen 120b. No camera/card acceptance. See `research/g124_ui_v2/REPORT.md`.\n')
+    print(first,pin)
+
+if __name__=='__main__':main()

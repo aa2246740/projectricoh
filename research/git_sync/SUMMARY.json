@@ -1,0 +1,82 @@
+{
+  "schema": "projectricoh-git-sync/1",
+  "date_local": "2026-11-04",
+  "base": "ae01c96c97be1d6edfa82d22e3109891dd906d5b",
+  "branch": "main",
+  "remote": "https://github.com/aa2246740/projectricoh.git",
+  "remote_is_public": true,
+  "initial_status_paths": 117086,
+  "initial_classification": {
+    "commit": 6185,
+    "keep-local": 107230,
+    "unsure": 3671
+  },
+  "new_public_files": 18,
+  "all_classification": {
+    "commit": 6203,
+    "keep-local": 107243,
+    "unsure": 3671
+  },
+  "complete_local_inventory": "research/git_sync/local/classified.jsonl",
+  "complete_local_inventory_sha256": "c2fed7b6e5905850d97f51c3169d9b7fc0a8e6e38bd842d248b7350be3dc38ec",
+  "initial_status_nul_sha256": "b48b854fc23249a9fcb04ec7271e578d5b5b14092565d4a70b648737a23c6ab0",
+  "keep_local_groups": 1216,
+  "exact_unsure_paths": 3671,
+  "generated_root_ignore_rules": 10078,
+  "tracked_keep_local_paths": [
+    "decisions.tsv",
+    "research/emulator_fast_r1/PROGRESS.md",
+    "research/emulator_fast_r1/REPORT.md",
+    "research/emulator_fast_r1/strict_r3/PROGRESS.md"
+  ],
+  "commits_before_final_audit": [
+    {
+      "sha": "dd95cda3e5fc90f7d5914511f9af03cd72da4e7b",
+      "area": "tools",
+      "files": 4188
+    },
+    {
+      "sha": "f0a568929f60164a103017cf9e961f42c28541c3",
+      "area": "firmware",
+      "files": 1318
+    },
+    {
+      "sha": "59166b8a8f4512079a8d6a18be6434d28a3dc7f2",
+      "area": "research",
+      "files": 676
+    },
+    {
+      "sha": "22e5e5582dd781ee73054b054cc81a014de59731",
+      "area": "docs",
+      "files": 4
+    },
+    {
+      "sha": "bfb8bcbb005dcc04f3c20616e23eaaa857453e6b",
+      "area": "probe-tools",
+      "files": 4
+    },
+    {
+      "sha": "f7e322a2755dd2b0c260e496688325a3ed776c54",
+      "area": "sync-audit",
+      "files": 14
+    }
+  ],
+  "final_audit_commit": "HEAD at delivery; message Record concurrent work left local after sync",
+  "push_performed": false,
+  "history_rewritten": false,
+  "files_deleted_by_task": false,
+  "network_used": "read-only git fetch origin main only",
+  "whole_project_build_run": false,
+  "camera_or_card_accessed": false,
+  "probe_receipt": "research/git_sync/PROBE_CHECK.json",
+  "new_concurrent_local_paths": 13,
+  "post_snapshot_held_working_versions": 17,
+  "late_local_manifest": "research/git_sync/LATE_LOCAL.tsv",
+  "late_local_cutoff_utc": "2026-11-03T17:15:05.010856+00:00",
+  "gitleaks": {
+    "version": "8.30.1",
+    "range_verified": "ae01c96c97be1d6edfa82d22e3109891dd906d5b..f7e322a2755dd2b0c260e496688325a3ed776c54",
+    "findings": 0,
+    "report": "research/git_sync/local/gitleaks-commits.json"
+  }
+}

@@ -1,0 +1,8 @@
+Generation 145. Diagnostic DAT for the v3.8 body (resident build id 79d8e2a2...): gen 144 screen behaviour (S page,
+guarded 8-row readings overlay) plus a card trace. The DAT opens the existing /ATA1/GXRTRACE.BIN (4,096 B, header
+"GXRT145", placed on the card on the Mac), checks length and header, and overwrites its own unit's 1,008 B slot in
+place (open flags 2) at the end of init and after every menu entry (max 16 per boot). No create/rename/delete entry.
+Changed vs g144: candidate/containers/product/diag.c (trace), candidate/engine_services/bridges.S and
+engine_services.h (four native file entries). Build: build_diag.py (TMPDIR=/Volumes/Workspace/Scratch/tmp/projectricoh/unit28-r4).
+Acceptance, decoder and report: research/unit28_stock (accept_diag145.py, decode_trace.py, REPORT.md).
+Package: firmware/package_v38_diag145 (GXRCE.DAT + blank GXRTRACE.BIN).

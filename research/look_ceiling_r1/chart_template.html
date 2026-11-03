@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>机内颜色分层对照 · 电脑预测</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:none;color:var(--foreground,#1d2928);font:14px var(--font-sans,system-ui)}
+main{margin:0;padding:0;max-width:100%;background:none}p{line-height:1.6;color:var(--muted-foreground,#52615d);margin:8px 0 12px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.controls select{max-width:100%}
+select,button{font:inherit;padding:8px 12px;border:1px solid var(--border,#bac7c1);background:var(--card,#fff);border-radius:var(--radius,7px);color:var(--foreground,#1d2928)}
+button.active{background:var(--primary,#234e44);color:var(--primary-foreground,#fff)}
+.chart-box{padding:16px;background:var(--card,#fff);border:1px solid var(--border,#d4ddd5);border-radius:var(--radius,10px)}
+svg{width:100%;height:310px;display:block}svg text{fill:var(--foreground,#234e44);font-family:var(--font-sans,system-ui)}
+.grid{stroke:var(--border,#e5ebe7)}.tick{fill:var(--muted-foreground,#53645c)}.threshold{stroke:var(--warning,#bd6a40)}
+.range{stroke:var(--chart-2,#82a99b)}.point{fill:var(--chart-1,#234e44)}
+table{border-collapse:collapse;width:100%;margin-top:12px;font-size:13px}th,td{text-align:left;padding:8px 5px;border-bottom:1px solid var(--border,#d5ded9)}
+.note{font-size:12px}.value{font-variant-numeric:tabular-nums}
+</style>
+<main>
+<p>全部为电脑预测。横线表示未定硬件解释的分数范围，圆点是固定Y轴/post/后加/Rbefore链；虚线为90%。</p>
+<div class="controls"><select id="target" aria-label="目标"></select><button id="mount" class="active">MOUNT照片</button><button id="fifty">50mm照片</button></div>
+<div class="chart-box"><svg id="chart" role="img" aria-label="各层相似度"></svg></div>
+<table><thead><tr><th>层</th><th>解释范围%</th><th>固定链%</th><th>较上一层</th></tr></thead><tbody id="numbers"></tbody></table>
+<p class="note">MOUNT响应核从50mm迁移。范围不是置信区间，更多参数未必改善留出；有限拟合低分不证明硬件做不到，超过90%也不等于相机已验证。</p>
+</main>
+<script>
+const DATA=__DATA__;
+let unit='mount-a12';
+const select=document.querySelector('#target');
+DATA.forEach((d,i)=>select.add(new Option(d.name,i)));
+const fmt=x=>x.toFixed(2);
+function render(){
+  const chart=document.querySelector('#chart'), W=Math.max(280,chart.clientWidth);
+  chart.setAttribute('viewBox',`0 0 ${W} 310`);
+  const rr=DATA[+select.value].groups[unit],lo=Math.min(0,...rr.map(r=>r.low));
+  const left=37,right=W-62,x=v=>left+(v-lo)/(100-lo)*(right-left);
+  let s='';
+  for(let a=Math.ceil(lo/10)*10;a<=100;a+=10){
+    if(W<460 && a%20!==0)continue;
+    s+=`<line class="grid" x1="${x(a)}" x2="${x(a)}" y1="20" y2="270"/><text class="tick" x="${x(a)}" y="294" text-anchor="middle" font-size="12">${a}%</text>`;
+  }
+  s+=`<line class="threshold" x1="${x(90)}" x2="${x(90)}" y1="15" y2="270" stroke-dasharray="5 5"/>`;
+  rr.forEach((r,i)=>{
+    const y=43+i*49;
+    s+=`<text x="2" y="${y+5}" font-size="14">${r.layer}</text><line class="range" x1="${x(r.low)}" x2="${x(r.high)}" y1="${y}" y2="${y}" stroke-width="12" stroke-linecap="round"/><circle class="point" cx="${x(r.canonical)}" cy="${y}" r="6"/><text x="${Math.min(W-45,x(r.high)+12)}" y="${y+5}" font-size="12">${fmt(r.canonical)}</text>`;
+  });
+  chart.innerHTML=s;
+  document.querySelector('#numbers').innerHTML=rr.map((r,i)=>`<tr><td>${r.layer}</td><td class="value">${fmt(r.low)}–${fmt(r.high)}</td><td class="value">${fmt(r.canonical)}</td><td class="value">${i?((r.canonical-rr[i-1].canonical)>=0?'+':'')+fmt(r.canonical-rr[i-1].canonical)+' pp':'—'}</td></tr>`).join('');
+}
+select.onchange=render;
+document.querySelector('#mount').onclick=()=>{unit='mount-a12';document.querySelector('#mount').className='active';document.querySelector('#fifty').className='';render()};
+document.querySelector('#fifty').onclick=()=>{unit='a12-50';document.querySelector('#fifty').className='active';document.querySelector('#mount').className='';render()};
+window.addEventListener('resize',render);select.value=0;render();
+</script>
+</html>

@@ -1,0 +1,3 @@
+local/
+# Fitted curve and colour-row arrays, and any dense samples derived from
+# Fujifilm LUT files. The .cube files themselves stay under /tmp.

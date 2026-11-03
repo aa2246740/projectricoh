@@ -1,0 +1,3 @@
+DIAG-DAT-V1 GENERATION 125 PASS_HOST; build via build_diag.py.
+DAT 38e3db6eacaf05a4ad8dbafbda608e3b5695485110014f7816f32d315b3f49a1
+Profile H not implemented. Camera/card acceptance NOT_RUN.

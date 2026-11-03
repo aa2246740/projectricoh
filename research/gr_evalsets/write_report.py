@@ -1,0 +1,228 @@
+#!/usr/bin/env python3
+"""Generate a Chinese report from local measurements; publish no pixel arrays."""
+import sys
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+import engine as e
+import numpy as np
+
+TITLES={'bastibe':'bastibe GR III','gr3_still':'IR GR III 静物台',
+        'gr3_portrait':'IR GR III 室内人像','gr3x_still':'IR GR IIIx 静物台'}
+
+
+def pair(s):
+    return '无样本' if not s['n'] else f"{s['median']:.3f} / {s['p90']:.3f}"
+
+
+def cell(s):
+    return '0；—' if not s['n'] else f"{s['n']}；{pair(s)}"
+
+
+def table(headers,rows):
+    return '\n'.join(['| '+' | '.join(headers)+' |','| '+' | '.join(['---']*len(headers))+' |']+
+                     ['| '+' | '.join(map(str,row))+' |' for row in rows])+'\n'
+
+
+def main():
+    model=e.read(e.LOCAL/'model_summary.json');meter=e.read(e.LOCAL/'metering_summary.json')
+    scenes=model['scenes'];names=list(TITLES);ir=names[1:]
+    chunks=[]
+    def add(text):chunks.append(text.strip()+'\n')
+    add('''# GR 评测样张的模型、测光锚与配方参考
+
+2026-10-21。仅本地计算，未接触相机、存储卡或网络。
+
+A：GR III 的核心矩阵与曲线能迁移到新色卡，但冻结模型不能直接当作完整的全图 Standard 渲染器。两张 GR III 色卡的中位/P90 为 1.202/1.702、0.663/1.031 ΔE00；全图平坦块为 6.340/10.208、3.110/9.674。边缘误差和径向诊断支持“缺少空间校正”这个解释，不能把所有残差归到固件版本。证据级别为文件测量确认，原因判断为推断。
+
+B：这些文件仍不能定下零补偿、均匀灰、点测的可信锚。IR 两张 N5 附近灰块的 u_BE 为 0.084960、0.090885，JPG 亮度约 124.33、124.17 码；它们是场景内灰块的曝光结果。静物台是 M 档，人像的曝光程序和曝光模式标签冲突。积分网格与 RAW 的仿射拟合仍有约 17%–26% 的相对 RMS 残差。本轮不建议改变现用锚，也没有可直接给 gr_round6 使用的已批准锚。证据级别为文件测量确认，点测锚未知。
+
+C：可增加模型候选和检验颜色，不能增加独立的正片/负片真值。新材料补了品红和红色的明度范围、蓝色的明度范围；高饱和紫色仍缺。Vivid 复现良好，Retro、Bleach Bypass、Cross Processing 的中位误差分别为 3.356、7.184、13.736，说明当前部分模型没有覆盖所有风格阶段。现有 01/02 的 bastibe 相对效果基线复算为 0.307/0.420，支持保留原观测目标，不能由此确认新色相的目标。证据级别为 Standard 文件测量与风格局部验证；IR 正负片目标属于模型推断。
+
+## 输入和方法
+
+先核对 `/Volumes/Workspace` 已挂载、APFS、可写，UUID 为 `14BE04EB-AF49-497E-B36A-B078B2F7C5E8`，并运行 `df -h /Volumes/Workspace`，约 1.6 TiB 可用。先写 `.gitignore` 的 `local/`，`git check-ignore -v` 命中该规则后才写派生数据。
+
+输入目录原有 SHA256SUMS 的 18 个文件全部匹配。另有 4 个未列入原清单的 `thumbs/*.JPG`，本轮把它们与 README、清单本身一起冻结；不以缩略图代替测量。冻结清单共 50 个只读输入，其中 21 个代码或模型文件复制到 `local/vendor/`，并逐一核对哈希。完整路径、哈希、卷检查与初始 Git 状态在 `local/inputs.sha256.json`、`local/preflight.json`、`local/git-status-before.txt`。
+
+使用原始 DNG 与给定的机内 JPG。`_ADOBE` 文件仅验输入哈希，未纳入相机渲染、测光或风格指标。`1/` 是旧 bastibe 场景的重复参考，不计作第二个场景。负片 JPG 的实际 Software 为 1.71；Standard、Positive 与四种新增风格为 1.60。IR 两张 GR III 的 DNG 为 1.00，配对 JPG 只保留 copyright EXIF，机内来源按用户提供的说明采用，无法从 JPG 自身复核完整处理历史。
+
+IR GR III 的 0x0247 长度为 42 字节。沿用后续版本字段顺序读取，前七项全为零，ImageTone 为 Standard；未把 44 字节解析器的拒绝当成滑杆非默认。IIIx 为 44 字节，其 DNG 和 JPG 可读取默认 Standard 字段。
+
+RAW 扣黑位并按白位范围归一化，在默认裁切的 RGGB 2×2 四元组上取 R、两绿平均、B。SOF3 使用复制来的 C 解码器，并用 Python 独立解码前两行交叉检查，四帧均为零差异；这不是整个 RAW 的第二解码器证明。代码、编译产物和临时文件均在本目录 local 内，所有 Python 命令使用 `python3 -I -B`，不执行数据目录里的内容。
+
+冻结前向式为：
+
+```text
+RGB_out = curve256(clamp(E × front_Q8/256 × (RAW / AsShotNeutral), 0,1) × 4095) / 16384
+E = 1.3748538519099722，gain = 11222，flag = 0
+```
+
+矩阵的整数合成、曲线和上述共享参数沿用既有冻结模型。没有用 IR 颜色拟合矩阵、曲线或任意残差 LUT。它仍省略硬件 MultiAxial 像素函数、空间校正、局部 ToneControl、风格 toning 与最终色域阶段；E/gain 是在 bastibe 灰块上得到的干扰参数，不是实测运行增益。
+
+主检验在每个 64×64 原图单元内取一个 32×32 ROI。要求半分辨率 JPG 每通道标准差 ≤3 码，最大值 <251，10≤L*≤95，RAW 无饱和像素且各通道为正。单通道接近零可由饱和颜色的色域裁切造成，未因此删除。取样条件不使用模型误差。色卡使用中心 40×40 ROI，人像小色卡为 24×24；bastibe 沿用原 ROI 并对齐四元组边界。主指标是 F(mean RAW) 对 mean JPG；另存 mean F(RAW) 的差异，以检查非线性平均误差。
+
+ΔE00 用编码 sRGB→XYZ D65→Bradford D50→Lab D50，kL=kC=kH=1。P90 用 NumPy 线性百分位。JPG 亮度 J8 为 `(77R+150G+29B)/256`，不是照度。ROI 数量不等于独立场景数量；同一物体的邻近块相关，未据此制造统计置信区间。
+
+## A：色卡支持核心模型，全图仍缺空间阶段''')
+    add(table(['场景','24 格中位 / P90','平坦块数','全图中位 / P90','色相与明度均衡后中位 / P90'],
+              [(TITLES[n],pair(scenes[n]['chart']),scenes[n]['distribution']['all_flat']['n'],
+                pair(scenes[n]['distribution']['all_flat']),pair(scenes[n]['distribution']['hue_light_balanced'])) for n in names]))
+    add('''均衡结果对每个 30° 色相与 20 L* 档最多留 12 块，并单列 C*<8 的近中性档，避免背景面积完全决定总指标。主表仍保留全部通过条件的块。
+
+背景中的 0.31/0.42 是 01/02 相对效果对现有目标的色块误差；0.84/1.00 是场景色反推后的相对目标误差。这两组都不是 Standard 绝对渲染误差。既有 Standard 的固定诊断参数恰好也给 0.836/1.678，和“0.84”只是在数值上接近；共享灰块参数的旧 Standard 为 0.519/1.183，本轮重取 ROI 为 0.519/1.187。边界对齐带来约千分位的 ΔE 差别。
+
+### 24 格逐块结果
+
+下表每格为 ΔE00。三个 IR 色卡分别定位，未用印刷色卡的标称 Lab 值代替相机 JPG。坐标与逐块 RAW/JPG 均值只在 `local/*_samples.json`，公开脚本保留取样几何。''')
+    chart_records={n:e.read(e.LOCAL/f'{n}_samples.json')['chart'] for n in ir}
+    add(table(['色块','GR III 静物台','GR III 人像','GR IIIx 静物台'],
+              [(chart_records[ir[0]][i]['label'],*[f"{chart_records[n][i]['de00']:.3f}" for n in ir]) for i in range(24)]))
+    add('''### 色相和明度分布
+
+每格为“块数；中位 / P90”。色相来自观测 JPG 的 Lab D50，仅统计 C*≥8；空档是无样本，不能读作零误差。''')
+    add(table(['色相角','bastibe','GR III 静物台','GR III 人像','GR IIIx 静物台'],
+              [(f'{lo}–{lo+30}°',*[cell(scenes[n]['distribution']['hue_bins'][f'{lo:03d}_{lo+30:03d}']) for n in names]) for lo in range(0,360,30)]))
+    add('下表保留全部颜色与近中性平坦块。')
+    add(table(['JPG L*','bastibe','GR III 静物台','GR III 人像','GR IIIx 静物台'],
+              [(label,*[cell(scenes[n]['distribution']['lightness_bins'][key]) for n in names]) for label,key in [('10–30','10_30'),('30–50','30_50'),('50–70','50_70'),('70–95','70_95.01')]]))
+    add('''### 误差原因的可区分部分
+
+位置是最强的已测解释。归一化半径 r=0 在中心、r=1 在角落；中心取 r<0.35，边缘取 r≥0.65。''')
+    add(table(['场景','中心中位 / P90','边缘中位 / P90','径向诊断后的中性留出块','诊断后的全图中位 / P90'],
+              [(TITLES[n],pair(scenes[n]['distribution']['radial']['center']),pair(scenes[n]['distribution']['radial']['edge']),
+                pair(scenes[n]['radial_diagnostic']['neutral_holdout']),pair(scenes[n]['radial_diagnostic']['all_flat'])) for n in names]))
+    add('''径向诊断只用 C*<8、25<L*<85 的中性块，按空间棋盘分训练和留出，拟合 `EV=a0+a1 r²+a2 r⁴+a3 r⁶`。它显示原模型缺少显著空间增益，不能升级为冻结验证或镜头真实校正曲线。GR III 静物台色卡反而从 1.202/1.702 恶化到 2.487/3.604，说明全局径向式没有解释局部灰度、颜色及 ISP 的全部差异。
+
+仅用六灰拟合一个曝光量时，静物台需 +0.066 EV，色卡变为 0.538/1.526；人像需 +0.013 EV，色卡为 0.712/1.028。再允许 R/B 白平衡微调，最大绝对修正仅约 0.009 EV，无法解释边缘十余 ΔE 的误差。另存灰块 E/gain 诊断，但不替换冻结参数。
+
+光源与手动 WB 会改变相机 RGB 分布，DNG 的 AsShotNeutral 已逐帧使用。静物台 MakerNote R/B 增益约 2.641/1.520，人像约 1.609/3.129；无法仅由这些数证明光源光谱或精确色温。新色卡在两种白平衡下仍有较小残差，支持核心矩阵能迁移；没有受控光源对照，不能排除光谱相关残差。
+
+固件 1.00、1.60/1.71 与矩阵来源 2.10 不同，未取得这些版本的逐指令等同性，故不能把剩余差异唯一归因到版本。IR 两张的 0x0069 为全零，0x0079 为 [0,0]；IIIx 的 0x0069 为 00020000，0x0079 为 [2,4]。按已有解析，IIIx 高光校正有效位为关，另有阴影校正状态；本轮不把简报里的“DR 中”当作已确认的 +1 EV 高光模式。IIIx 与两张 III 的 BaselineExposure 都约 −0.506，不能由这个标签推出测光等价。
+
+IIIx 是 40mm 等效镜头，曝光 1/6 s；III 静物台为 28mm 等效、1/10 s，均为 ISO100、f/8。使用 III 的部分模型得到 IIIx 色卡 0.661/1.698，支持同代核心颜色响应相近；镜头暗角、阴影处理、WB 和曝光不同，不能视作同机重复验证。
+
+## B：灰块量到了，点测锚仍未闭合
+
+单位沿用既有研究：
+
+```text
+c_i = (RAW_i − BlackLevel_i) / (WhiteLevel − BlackLevel_i)
+u0 = (cR/nR + 2cG/nG + cB/nB) / 4
+u_BE = 2^BaselineExposure × u0
+u_BE_12bit = 4095 × u_BE
+```
+
+这里 n 为 AsShotNeutral。这个 u 不是固件积分统计 Y，也不是 GammaTuning 输入码。''')
+    add(table(['场景灰块','u0','u_BE','4095×u_BE','JPG J8','相对 GR III 经验 118 点的 EV'],
+              [(TITLES[n],f"{meter['observations'][n]['gray_patch']['u_no_be']:.6f}",
+                f"{meter['observations'][n]['gray_patch']['u_be']:.6f}",
+                f"{meter['observations'][n]['gray_patch']['u_be_12bit']:.2f}",
+                f"{meter['observations'][n]['gray_patch']['jpeg_luma']:.2f}",
+                f"{meter['observations'][n]['gray_patch']['delta_from_GR118_ev']:+.4f}") for n in names]))
+    add('''bastibe 使用 D4，其 JPG 与既有 114.84 的差约 0.06 码，来自本轮四元组边界对齐。IR 三张使用 Classic 的 neutral_5。灰卡没有填满测光窗，N5 所在位置也不是中心点测窗，画面含大量亮暗物体，因此 124 码不等于点测目标。
+
+既有 GR III 经验 Standard 118 参考值为 0.08577678，依赖既有中心化暗角补偿与曲线拟合约定。本轮灰块 u_BE 未做空间补偿，表中 EV 是相对既有数值参考的比值，不是直接测得的中心点测曝光偏差。本轮冻结部分模型的中性 118 点约为 0.08428676，两者也不是完全相同的曲线。常说的 `320/4095=0.07814408` 是 GXR 名义曲线的 118 输入点；若把它额外假定为 GR 的 u_BE，则 IR 两个灰块比它高 +0.121 至 +0.218 EV，但该比较没有证明同一单位对应同一测光标定。不能把 348–372 直接写成 GR 的新锚。
+
+### AEInfo 和测光网格
+
+沿用 2.10 的静态布局读 q/256−9。字段 85 为整图 log，89 为中央重点，95 为最终值，109 为 b+5。stage 1 的字段语义尚未像历史 stage 2 那样独立验证，表中结果是沿用布局的读取。内部 EC 用字节 6 计算，不能以 EXIF 的四舍五入值替代。''')
+    rows=[]
+    for n in names:
+        o=meter['observations'][n];a=o['ae'];g=meter['grid_bridges'][n]
+        rows.append((TITLES[n],f"{o['program']}/{o['exposure_mode']}",a['stage'],f"{a['ec_internal']:+.3f}",
+                     f"{a['fields']['85']:.4f}",f"{a['fields']['95']:.4f}",f"{a['fields']['109']:.4f}",
+                     f"{g['ae_selected_minus_T_EC_ev']:+.4f}"))
+    add(table(['场景','EXIF Program/Mode','stage','内部 EC','整图 log','最终 log','b+5','最终−logT−EC'],rows))
+    add('''T=550.8179931640625，logT=log2(T)−9=+0.105431877469 EV。静物台 Program=1、Mode=1 明确为 M；人像 Program=3 但 Mode=1，存在冲突。人像最终值恰好贴近 T+内部 EC，是跨版本一致性旁证，不能消除标签和测光时序问题；IIIx 也是 M 档，不把其 +0.383 EV 残差命名为 AE 目标偏移。
+
+三帧新 DNG 与 bastibe 的 0x0405 都为 64×62 有效格，每格样本数 1504。按已有偏移读取 R/G/B 网格，尝试每格 47×32 半分辨率 RAW 的几何对齐与逐通道仿射拟合。格尺寸与对齐属于拟合假设，不是恢复的硬件设置。''')
+    add(table(['场景','R/G/B 斜率','R/G/B 相对 RMS','AE整图−保存网格 EV','AE中央−保存网格 EV'],
+              [(TITLES[n],'/'.join(f'{x:.3f}' for x in meter['grid_bridges'][n]['fit']['slopes']),
+                '/'.join(f'{100*x:.1f}%' for x in meter['grid_bridges'][n]['fit']['relative_rms']),
+                f"{meter['grid_bridges'][n]['ae_mean_minus_grid_ev']:+.3f}",
+                f"{meter['grid_bridges'][n]['ae_center_minus_grid_ev']:+.3f}") for n in names]))
+    add('''保存网格 log 使用浮点 log2，不是相机 Q8 近似表。量化只在千分之几 EV，解释不了这里的 0.1–0.4 EV 及通道残差。整图与中央的校正差异也说明不能拿一个全局尺度直接替代中心点测校准。
+
+若额外假设“仿射关系可外推到均匀中性、AEInfo 与保存网格的整图差就是中心增益、2.10 参考值适用 1.00、stage 语义与采集时刻一致”，IR 两张的条件点测代理分别为 `u_BE=0.070802`、`0.045764`，冻结模型预测约 106.59、79.55 码。去掉仿射截距又变成 0.076798、0.058390。仅换一组假设就产生大幅变化，因此 0.0458–0.0708 只是条件拟合散布，既不是可信估计，也不是置信区间或物理上下界。可信点估计与不确定区间仍为未知。
+
+缺口仍是工厂 R/G 归一化、空间增益、LV/拍摄增益与保存时序到 DNG 的连接。在这套几何假设下，没有验证出稳定的 1/4 或 1/3 换算。几何与采集时刻未定，不能据此证明真实硬件没有固定比例；这些拟合仍不足以闭合 kR/kG。
+
+### 多分区与点测的 0.5 EV 说法
+
+四种测光共用服务参考 T，但统计函数不同。已有静态代数对 GR III 的默认 crop、无 AF/人脸/区域混合、均匀正值 log 网格给出：
+
+```text
+M_multi = L + 0.85 c + 0.15 max(c,0) − d
+当 5 < x=b+5 <= 12：c=0，d=0.5，所以 M_multi=L−0.5
+M_spot = L
+```
+
+在这个均匀条件下，多分区为达到同一个 T 会多给 0.5 EV，RAW 线性量乘 √2。IR 两张的 x 虽在该区间，场景却远非均匀；其最终 log 相对整图 log 分别为 −0.0156、+0.1484 EV，不能直接减去 0.5。点测默认是中心 8×8 网格，N5 也不在这一区域。这些照片不足以把多分区曝光反推出均匀灰点测锚。
+
+### 对 01/02 目标的敏感度
+
+本轮重新构造既有 01/02 的 18 个颜色目标，得到中位/P90 0.307/0.823、0.420/0.614，和背景一致。这里保留 gr_round5 的既有约定：GR 相对效果在 D50 中求，应用到 GXR 的 D65 基底，灰块不转色相/饱和度；没有改写该约定。
+
+下表固定 GXR 的基底颜色，只改变 GR 相对效果生成器的线性输入。它量的是“目标会移动多少”，不是 GXR 配方新误差、相似度百分比，也不是新的测光建议。''')
+    sensitivity=[]
+    for i in range(4):
+        a=meter['target_sensitivity']['01']['shifts'][i];b=meter['target_sensitivity']['02']['shifts'][i]
+        sensitivity.append((f"{a['delta_ev']:+.3f}",f"{a['linear_ratio']:.3f}",pair(a['target_movement_colours']),pair(b['target_movement_colours'])))
+    add(table(['假设锚移动 EV','线性比例','01 颜色目标位移中位 / P90','02 颜色目标位移中位 / P90'],sensitivity))
+    add('''后两行只是上述不可信代理相对 GR 经验 118 点的移动，用来显示错误重锚的影响。现行 GR 锚不作修改；`local/anchor_diagnostic.json` 的 `approved_for_gr_round6=false`、`credible_anchor=false`，锚值为 null，不是锚定交付文件。
+
+## C：新色相只能作为模型候选
+
+另设 12×12 小平坦窗，步长 24 像素、JPG 标准差仍≤3，取样不看残差；这让红花、面部、手部与部分布样能进入独立 Standard 检查。GR III 人像的红花为 0.482/0.634、蓝花为 1.086/1.707，面部为 1.479/2.500、手部为 1.647/2.431。图中面部和手部外观像仿真人偶，这是视觉推断；本地文件没有真人材质说明，故只确认肤色样色域，不声称验证了真人皮肤光谱。
+
+布样和线束大多不满足平坦要求。为回答色域覆盖，单独以标准差≤10 的 12×12 材料窗探索，按材料区域、15° 色相、15 L* 分层，每层最多取两个相距≥48 像素的代表窗。它们不计入 A 的平坦验证。下表只含 C*≥20；数量是 ROI 数，不是独立颜色真值。''')
+    coverage_rows=[]
+    for sector,label in [('red','红 0–45°'),('magenta','品红 315–360°'),('blue','蓝 240–285°'),('purple','紫 285–315°')]:
+        for n in ('gr3_still','gr3_portrait'):
+            c=scenes[n]['material_exploration']['coverage'][sector]
+            coverage_rows.append((label,TITLES[n],c['n'],f"{c['max_chroma']:.1f}" if c['n'] else '—',
+                f"{c['L_range'][0]:.1f}–{c['L_range'][1]:.1f}" if c['n'] else '—',pair(c['standard_error']) if c['n'] else '—'))
+    add(table(['色相区域','场景','材料窗数','最大 C*','L* 范围','Standard 中位 / P90'],coverage_rows))
+    add('''品红的新增主要来自布样，蓝色来自布样、绣线与蓝花。bastibe 的 C*≥20 平坦参考中没有品红窗；蓝、紫最大 C* 已约 45.1、52.6。新材料窗没有提高蓝色最大饱和度，主要补明度范围；紫色只有人像四窗、最大 C*35.5，仍不能称为补齐高饱和紫。IIIx 材料窗也没有在这个紫色定义内补出样本。
+
+材料窗的 F(mean RAW) 与 mean F(RAW) 差异 P90 约为静物台 0.230、人像 0.190、IIIx 0.257 ΔE00，但个别人像窗达到 2.000。已保存该差异，不能把含纹理与色域裁切的均值当作单一光谱色。
+
+候选文件 `local/*_model_only_targets.json` 保存同一 RAW、同一 WB 下模型生成的 Standard、Positive、Negative Lab D50。它们保留拍摄曝光，没有按新测光锚归一，也没有对应的 GXR RAW 输入。所有文件都标记 `training_approved=false`、`gxr_training_pair_available=false`、`metering_anchor_available=false`。
+
+建议先用这些颜色做保留的模型检验集，检查极端色相、色域裁切和后续目标变化。若用于拟合，只能作为显式低权重的模型正则，真实 bastibe 正负片观测仍单独计分，并单列移除合成数据后的结果。Standard 成立只证明公共前段与默认风格近似成立，不会证明 Positive/Negative 在新增饱和色上的模式专属阶段；不能用同一个模型造目标，再用拟合它的误差宣称独立验证。红色候选相对较有依据，品红为低到中等、蓝为分场景中等、紫仍低，均未达到独立风格真值级别。
+
+### 四个新增 bastibe 风格
+
+使用各 JPG 的实际 0x0247 滑杆，共享原 E/gain，不用新风格颜色拟合。相对栏把模型的 Lab 差加到同帧实测 Standard 上，是额外诊断；它与 01/02 的 LCh/GXR 基底指标不同。''')
+    add(table(['风格','绝对中位 / P90','相对 Lab 诊断中位 / P90','判断'],
+              [(label,pair(model['styles'][mode]['absolute']),pair(model['styles'][mode]['relative_lab_addition']),result)
+               for mode,label,result in [('vivid','Vivid','公共矩阵/曲线的额外正证据'),('retro','Retro','当前模型未复现'),
+                   ('bleach','Bleach Bypass','当前模型未复现'),('cross','Cross Processing','当前模型未复现')]]))
+    add('''Vivid 的 contrast=+1。Retro 为 key=+2、contrast=−3、toning=1；Bleach 为 key=+4、contrast=+4、highlight=+4、toning=Off；Cross 为 Blue tone。Retro 与 Cross 的调色路径并未纳入当前式，Cross 的前矩阵记录还与 Standard 相同，仅靠该矩阵不可能生成蓝调交叉处理。Bleach 在 toning=Off 下仍误差较大，不能把失败全归因于调色开关；其局部阶调、MultiAxial、极端滑杆和最终处理尚有缺项。四风格结果没有被当作 01/02 的目标。
+
+## 复跑和交付边界
+
+从仓库根目录运行，命令只写 `research/gr_evalsets/`。无需下载或安装依赖。需要本机现有 Python、NumPy、SciPy、Pillow 与 C 编译器。
+
+```bash
+python3 -I -B research/gr_evalsets/prepare.py
+python3 -I -B research/gr_evalsets/engine.py
+python3 -I -B research/gr_evalsets/measure_models.py
+python3 -I -B research/gr_evalsets/metering.py
+python3 -I -B research/gr_evalsets/write_report.py
+python3 -I -B research/gr_evalsets/verify.py
+```
+
+`engine.py` 使用已有本地缓存；若要重新解码，把指定的 `local/<scene>.npz` 与对应 metadata 移至本目录 local 下的保留目录，再运行，不能把输入移走。重生成派生文件后，先检查差异，再运行 `verify.py --seal` 更新交付清单。
+
+公开的 `SHA256SUMS` 以 `research/gr_evalsets/` 为基准，不含它自身和 local。`local/SHA256SUMS` 以 `research/gr_evalsets/local/` 为基准，包含照片派生数组、图像、复制依赖、固件派生内容及本地临时编译器产物，不含它自身与每次重写的 `verification.json`。原数据清单的基准仍是 `captures/contrib/2026-10-21-evalsets/`。`local/inputs.sha256.json` 的路径则以仓库根目录为基准。
+
+`verify.py` 复核两份交付清单、全部冻结输入、21 份 vendor 副本、local 忽略规则、公开文件类型与长字节串限制、色卡/JPG ROI 数值、ΔE 计算与目标禁用标记。它还核对每帧 24 格、平坦筛选、已知 CIEDE2000 数值例和 01/02 的既有目标基线。复核结果写入 `local/verification.json`。
+
+公开交付只有报告、脚本、忽略规则和哈希清单；照片均值数组、缩略图、积分网格、矩阵/曲线原值与固件内容全部位于被忽略的 local。没有修改 captures、artifacts 或其他 research 目录，没有访问 gr_round6 或 closed_loop，没有生成 DAT、提交 Git 或进行相机验收。仓库原有大量未提交和未跟踪内容，本轮的输入哈希检查只证明使用的输入未改，不能替其他正在运行的工作声称全仓库静态不变。
+''')
+    (e.HERE/'REPORT.md').write_text('\n'.join(chunks))
+    print('REPORT.md written; published values are aggregate metrics and requested gray scalar measurements.')
+
+
+if __name__=='__main__':main()

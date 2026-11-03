@@ -1,0 +1,20 @@
+g147a. File-free diagnostic DAT for the v3.8 body (resident build id 79d8e2a2...); DAT header generation 147,
+engine version string diag-dat-v38-g147a. Built from the gen 147 tree with the OK-time card read withdrawn
+(review research/review_diag147_r3/REVIEW.md, R3-01: the native close API lowers the open count before it takes
+semaphore 47, so a zero count does not prove a clean shared FAT cache; the read is deferred, see
+research/diag147/READ_GATE_NOTE.md).
+Screen: gen 144/146 behaviour (S page, guarded 8-row readings overlay, up/down consumed). DISP cycles
+S -> P1A -> P1B -> G -> I -> J -> H.
+  P1A/P1B: the 95 printable ASCII characters 0x20..0x7e in order, 8 per row (P1A rows 1-7, P1B rows 1-5), and on
+    P1B rows 6-7 two 32-character width rows "1234567890ABCDEFGHIJKLMNOPQRSTUV" and "MW" x 16 (UI text source
+    n.wide). The last fully visible character of row 6 gives the column count (1-9, 0 = 10, A = 11 ... V = 32).
+  OK, ADJ and half-press only close the list (keep 0) as in gen 146; the refusal overlay's last row is DIAG147A.
+No card access: no file internal, file API, semaphore 47 entry (try, signal, wait), create, rename, delete or write
+entry is bridged or formed; no path string. No S, T or unit RAM write path (services.c as in gen 146).
+Changed vs gen 147: candidate/containers/product/diag.c (read path, P2 and OK handling removed),
+candidate/engine_services/bridges.S and engine_services.h (lock and file bridges removed), build_diag.py and
+candidate/common.py (paths).
+Build: build_diag.py (TMPDIR=/Volumes/Workspace/Scratch/tmp/projectricoh/diag147; fence research/diag147/scope.py).
+Checks and report: research/diag147 (static_check147a.py, accept_diag147a.py, run_accept147.py --g147a,
+emu_g147_boot.py ... g147a, package147a.py, REPORT.md section g147a).
+Package: firmware/package_v38_diag147a (GXRCE.DAT only).

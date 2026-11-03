@@ -1,0 +1,26 @@
+Generation 146. Diagnostic DAT for the v3.8 body (resident build id 79d8e2a2...): gen 144 screen behaviour (S page,
+guarded 8-row readings overlay) plus a lock-safe card trace (replaces the gen 145 trace, review D145-01/02/03).
+The DAT opens the existing /ATA1/GXRTRACE.BIN (8,704 B, header "GXRT146" + 16 B nonce, placed on the card on the
+Mac) and never creates, renames, deletes or extends it. The file semaphore 47 is only tried (0x2005E360 with id 47,
+timeout 0); a busy try skips this record and is counted (busy_init / busy_menu). Only after a successful try do
+the native file internals run, then 47 is signalled once (0x0500D4FC):
+  load, once per boot, on a fresh handle: parse 0x200A531C, lookup 0x200A65F8 (mode 2), attach 0x200AB4F0;
+    mode 2, then 0x200AAD38 (the body of the buffered read API 0x200A449C, as g145 run2 used it) fills the
+    handle's own one-cluster buffer from position 0; the returned valid byte count must be exactly 8,704,
+    otherwise the length is wrong and this boot never writes; close (release 0x200A6750);
+  each record, on a new fresh handle: the record goes into this unit's current half of the RAM image, the
+    whole 8,704 B image is put in the handle's cluster buffer (the rest of the cluster, past EOF, zeroed) and
+    flushed from position 0 with 0x200AB02C (no seek); close. The write is not read back in the camera; a
+    flush success flips to the other half. Integrity is judged off-camera by decode_trace.py (CRC32 + commit).
+No lseek and no direct read: the earlier read path through 0x200ADAD0 (internal of the direct read API
+0x200A4880) returned wrong data in the emulator and is gone.
+H01/H06/H07/H08 entries read the kernel current-task word 0x200D1838 (last id, count, first id; record spare
+words hook_task / hook_first).
+Changed vs g145: candidate/containers/product/diag.c (trace), candidate/engine_services/bridges.S and
+engine_services.h (lock try/release and six file internals instead of the four file APIs), build_diag.py and
+candidate/common.py (generation, paths, Scratch). Build: build_diag.py
+(TMPDIR=/Volumes/Workspace/Scratch/tmp/projectricoh/unit28-r5).
+Acceptance, lock proof, decoder, emulator replay and report: research/unit28_stock (accept_diag146.py,
+run_accept146.py, lock_proof146.py, static_check.py, decode_trace.py, trace146.py, emu_g146_trace.py (final:
+research/emulator_m2d/local/unit28-g146/final6), emu_g146_hooks.py (hooks1), REPORT.md).
+Package: firmware/package_v38_diag146 (GXRCE.DAT + blank 8,704 B GXRTRACE.BIN).

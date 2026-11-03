@@ -1,0 +1,1 @@
+Generation 123 host-only candidate. Current source, package and acceptance: research/g123_fix/REPORT.md. Inherited native evidence is under local/inherited/native.

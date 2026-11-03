@@ -1,0 +1,3 @@
+gen 127 ownership fix
+DAT SHA256 9100616f24dae04eb43138805336b3eebc3eebcc5b86f14b3e0b30969474ead6
+关键归属和 cold_reentry 通过；全量回归未闭合。详见 research/g127_fix/REPORT.md。

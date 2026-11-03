@@ -1,0 +1,8 @@
+ts	phase	decision	why	evidence	result
+2026-10-30T00:50:17.281367+00:00	start	只写本研究目录，使用原始固件和既有 GNU 工具。	按任务范围隔离写入。	local/archive-identity.json;write_scope.sb	已建立
+2026-10-30T00:50:17.281536+00:00	parameter	将 S 尾部 40 B 列为条件候选。	整块保存包含尾部，当前参数版本长度止于该段之前。	local/replay-results.json;local/param-reset.asm.txt	待全路径核对
+2026-10-30T00:50:17.281539+00:00	slots	保留原厂 Setting1/Setting2 和 MY 内容。	MY 载入会复制独立颜色数组和其他设置。	local/my-slot-mapping.json	不占用
+2026-10-30T00:50:17.281541+00:00	boot	把首次菜单前纯 04 单列为后续必要条件。	当前初始化只设菜单状态，原厂保存可以保留颜色和白平衡。	firmware/engine_v53_g135/candidate/containers/product/src/firmware/engine/core/eng_core.c	未闭合
+2026-10-30T01:12:34.424916+00:00	model	保留原厂类型恒返 1；返回 2 的两个用例仅作分支对照。	不能把人为选择的分支当作当前机身路径。	local/parameter-kind.asm.txt;local/replay-results.json	已区分
+2026-10-30T01:12:34.425091+00:00	ordering	用完整 40 B 及正确记录 CRC 核对保存顺序反例。	记录完整不等于整块 S 的校验快照一致。	local/replay-results.json	局部顺序已证；真实任务可达性未知
+2026-10-30T01:12:34.425093+00:00	delivery	报告采用部分可行，列明后续启动、保存、复位和尺寸任务。	没有把函数模型提升为相机持久性。	REPORT.md;local/facts.json	待最终清单核对

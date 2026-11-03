@@ -1,0 +1,8 @@
+choice	reason	evidence	result
+将 S 相同限定到当前固定数据	直接解析 24 个配方记录均为模式 1 与中性 WB，其他数据不能沿用	local/dat-unit-facts.json	静态已证
+不把内嵌 T 默认值当作实际存储值	三个单元的原厂有效读取均可保留控制 0	local/unit-start-replay.json	主机已证，完整启动未知
+不按菜单打开判断保存安全	Task 36 bit27 分支先保存后处理 Task 6 挂起	local/task36-save.asm.txt；local/power-order.asm.txt	静态已证
+采用同一快速计数协议且不等待	空闲计数为 -1，底层 semaphore 初值 0，直接零等待不是快速锁取得	local/lock-core.asm.txt；local/probe-wait-task6.json	设计选择
+在完整短 IRQ 区间内复制 40 B	忙时无任何 S 写入，原厂加和与复制之间的更新被拒绝	local/sync-replay.json	PASS_REFERENCE_REPLAY
+完整约定需要机身启动支持	DAT 首次 H01 前未装入，不能修正此前的原厂来源或证明其历史	firmware/resident_v37/resident/hooks.c；REPORT.md	缺口 1 未全路径闭合
+不改产品与共享模拟器	本轮授权范围只有研究目录	write_scope.sb；local/inputs-after.json	研究交付

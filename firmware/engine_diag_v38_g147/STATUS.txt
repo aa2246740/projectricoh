@@ -1,0 +1,29 @@
+Generation 147. Read-only diagnostic DAT for the v3.8 body (resident build id 79d8e2a2...): gen 144/146 screen
+behaviour (S page, guarded 8-row readings overlay, up/down consumed) with the gen 146 card trace removed (no card,
+unit, S or T write path). DISP cycles S -> P1A -> P1B -> P2 -> G -> I -> J -> H.
+  P1A/P1B: the 95 printable ASCII characters 0x20..0x7e in order, 8 per row (P1A rows 1-7, P1B rows 1-5), and on
+    P1B rows 6-7 two 32-character width rows "1234567890ABCDEFGHIJKLMNOPQRSTUV" and "MW" x 16 (UI text source
+    n.wide; review D147-02).
+  P2: OK (native key 0x23 in args[13]) on any page of ours, in the H07 entry, reads the existing /ATA1/GXRFX.BIN
+    once with the gen 146 shape: try 47 once (0x2005E360, id 47, timeout 0; -50 = busy, shown, nothing else);
+    with 47 held, a native open count (0x204C8668) other than 0 = BUSY, no parse/lookup/attach, 47 released
+    (review D147-01: lookup can commit another open file's dirty FAT cache); otherwise a fresh handle (parse 0x200A531C, lookup 0x200A65F8 mode 2, attach 0x200AB4F0); cluster not larger than
+    25,152 B (or above 64 KiB) -> LEN without a read; mode 2 and one fill 0x200AAD38 of the handle's own cluster
+    buffer from position 0; count must be below the cluster and equal 25,152 with the header length field;
+    header, directory and every effect CRC checked in the buffer; close (release 0x200A6750); signal 47 once
+    (0x0500D4FC). Row words: OK BUSY(47 busy "B L47", or n files open "B Fn") Lxx(other try code) OPEN LEN
+    READ(fill -1) HDR CRC CLOS(close -1). Rows: "P2 K<keep> nn", result, bytes, cluster bytes, ticks
+    (0x200D183C, nominally 1 ms, not calibrated on the camera) try..release and fill alone, reads/BUSY count,
+    "IDtt Lnn" kernel task word 0x200D1838 at that H07 entry and the read number of the latest BUSY (review
+    D147-04). Nothing is retried or latched.
+    With keep 0 (the usual OK) the resident closes the list and the next open starts on P2; keep 1 draws P2 now.
+No flush, lseek, create, rename, delete, direct read/write, file API entry or wait on 47 is bridged or formed.
+Review fixes (research/review_diag147/REVIEW.md): D147-01 open-file gate, D147-02 32-character rulers, D147-04
+latest BUSY on P2; D147-03 (tick time base not calibrated) is stated in the report only.
+Changed vs g146: candidate/containers/product/diag.c, candidate/engine_services/bridges.S and engine_services.h
+(flush bridge removed), build_diag.py and candidate/common.py (generation, paths, Scratch).
+Build: build_diag.py (TMPDIR=/Volumes/Workspace/Scratch/tmp/projectricoh/diag147; fence research/diag147/scope.py).
+Synthetic file, acceptance, static check, lock proof, emulator boot check and report: research/diag147
+(gxrfx.py, accept_diag147.py, run_accept147.py, static_check147.py, lock_proof147.py, emu_g147_boot.py,
+native_replay147.py, make_reference.py, package147.py, REPORT.md).
+Package: firmware/package_v38_diag147 (GXRCE.DAT + synthetic 25,152 B GXRFX.BIN).

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GXR 颜色响应探针色块</title>
+<style>
+  :root { color-scheme: dark; font: 16px/1.5 var(--font-sans, system-ui, sans-serif); color: var(--foreground, #ddd); }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  header { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; padding: 16px 0; }
+  h1 { margin: 0; font-size: 20px; font-weight: 600; }
+  nav { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { font: inherit; color: inherit; background: var(--secondary, #303030); border: 1px solid var(--border, #777); border-radius: var(--radius, 4px); padding: 7px 12px; cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--accent, #555); border-color: var(--foreground, #ddd); }
+  button:focus-visible { outline: 3px solid var(--ring, #bbb); outline-offset: 3px; }
+  .intro { margin: 0; padding: 0 0 18px; max-width: 1100px; }
+  .intro p { margin: 0 0 6px; }
+  main { padding: 16px; background: #202020; border-radius: var(--radius, 4px); }
+  #curves { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .patch { min-height: 170px; position: relative; }
+  .patch span { position: absolute; bottom: 0; left: 0; padding: 3px 8px; font: 13px/1.5 ui-monospace, monospace; color: #eee; background: #202020; }
+  #axis { display: grid; grid-template-columns: repeat(2,1fr); gap: 24px; }
+  .hue { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+  .hue h2 { grid-column: 1/-1; margin: 0; font-size: 15px; font-weight: 500; }
+  .hue .patch { min-height: 110px; }
+  [hidden] { display: none !important; }
+  footer { padding: 12px 0 16px; font-size: 13px; color: var(--muted-foreground, #bbb); }
+  body.target header, body.target .intro, body.target footer { display: none; }
+  body.target main { min-height: var(--photo-stage, 720px); display: flex; align-items: center; border-radius: 0; }
+  body.target main > section:not([hidden]) { width: 100%; }
+  body.target .patch { min-height: var(--photo-curve, 250px); }
+  body.target #axis .patch { min-height: var(--photo-axis, 170px); }
+  body.target .patch span, body.target h2 { display: none; }
+  @media (max-width: 680px) {
+    header { align-items: flex-start; flex-direction: column; }
+    nav { gap: 6px; }
+    #curves, #axis { gap: 12px; }
+    .hue { gap: 6px; }
+    .patch span { font-size: 11px; }
+  }
+</style>
+<header>
+  <h1>GXR 颜色响应探针</h1>
+  <nav aria-label="色块与显示">
+    <button id="show-curves" aria-pressed="true">三曲线 · 1</button>
+    <button id="show-axis" aria-pressed="false">C120 色块 · 2</button>
+    <button id="target">拍摄显示 · 空格</button>
+    <button id="fullscreen">全屏 · F</button>
+  </nav>
+</header>
+<div class="intro">
+  <p>M 档固定曝光、日光白平衡、ISO 200，固定机位和焦点。保留 RAW＋JPG；灰阶和色块都不要过曝或压成黑色。使用单张拍摄模式，保存相机原文件，不裁切、不调色。</p>
+  <p>今晚在既定升级和 looks18 试用之后，只用 MOUNT 拍 A、R×3、A、G×3、A、B×3、A，共 13 张。C120 色块供下一轮定轴使用，本轮 DAT 没有 C120 条目。</p>
+  <p>关闭夜览、原彩和自动亮度，屏幕亮度固定。先用实时画面检查横条，需要时降低快门速度，再开始本轮。空格隐藏文字；再次按空格恢复。</p>
+</div>
+<main>
+  <section id="curves" aria-label="三曲线用的三级灰阶与三个颜色色块"></section>
+  <section id="axis" aria-label="两个色相各三亮度乘三色度" hidden></section>
+</main>
+<footer>所有色块都由本地代码生成，不联网。屏幕用于同一相机前后对照；没有测量屏幕的光谱或亮度。</footer>
+<script>
+  const colours = [
+    ['暗灰', [48,48,48]], ['中灰', [128,128,128]], ['亮灰', [208,208,208]],
+    ['天空蓝', [91,149,194]], ['肤色', [190,137,111]], ['绿叶', [75,120,75]]
+  ];
+  const levels = [30,50,70], chromas = [8,24,40], hues = [40,140];
+  // CIELAB D65 keeps Y fixed within each row while varying chroma and hue.
+  function labRgb(L,C,h) {
+    const r = h*Math.PI/180, fy=(L+16)/116;
+    const f=[fy+C*Math.cos(r)/500,fy,fy-C*Math.sin(r)/200];
+    const xyz=f.map((v,i)=>(v>6/29?v**3:3*(6/29)**2*(v-4/29))*[0.95047,1,1.08883][i]);
+    const lin=[
+      3.2404542*xyz[0]-1.5371385*xyz[1]-0.4985314*xyz[2],
+      -0.969266*xyz[0]+1.8760108*xyz[1]+0.041556*xyz[2],
+      0.0556434*xyz[0]-0.2040259*xyz[1]+1.0572252*xyz[2]
+    ];
+    if(lin.some(v=>v<0 || v>1)) throw new Error('C120 色块超出 sRGB 色域');
+    return lin.map(v=>Math.round(255*(v<=0.0031308?12.92*v:1.055*v**(1/2.4)-0.055)));
+  }
+  function patch(label,rgb,metadata) {
+    const el=document.createElement('div');
+    el.className='patch'; el.style.backgroundColor=`rgb(${rgb.join(',')})`;
+    el.dataset.rgb=rgb.join(',');
+    el.setAttribute('aria-label',label+'，RGB '+rgb.join('、'));
+    if(metadata) for(const [key,value] of Object.entries(metadata)) el.dataset[key]=value;
+    const caption=document.createElement('span');caption.textContent=label;el.append(caption);
+    return el;
+  }
+  for(const [label,rgb] of colours) document.querySelector('#curves').append(patch(label,rgb));
+  for(const hue of hues) {
+    const group=document.createElement('div');group.className='hue';
+    const title=document.createElement('h2');title.textContent=`h° ${hue} · 每行 L* 固定，每列 C* 固定`;group.append(title);
+    for(const L of levels) for(const C of chromas) group.append(patch(`L${L} C${C}`,labRgb(L,C,hue),{l:L,c:C,h:hue}));
+    document.querySelector('#axis').append(group);
+  }
+  function show(axis) {
+    document.querySelector('#axis').hidden=!axis;document.querySelector('#curves').hidden=axis;
+    document.querySelector('#show-axis').setAttribute('aria-pressed',String(axis));
+    document.querySelector('#show-curves').setAttribute('aria-pressed',String(!axis));
+  }
+  function target() { document.body.classList.toggle('target'); }
+  async function fullscreen() {
+    try { if(document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); }
+    catch { document.querySelector('#fullscreen').textContent='请用浏览器的全屏菜单'; }
+  }
+  function fitFullscreen() {
+    const root=document.documentElement;
+    if(!document.fullscreenElement) {
+      for(const name of ['--photo-stage','--photo-curve','--photo-axis']) root.style.removeProperty(name);
+      return;
+    }
+    // Freeze pixel sizes while fullscreen; an embedded preview follows content height.
+    for(const [name,factor] of [['--photo-stage',1],['--photo-curve',.34],['--photo-axis',.24]])
+      root.style.setProperty(name,`${Math.floor(window.innerHeight*factor)}px`);
+  }
+  document.addEventListener('fullscreenchange',fitFullscreen);
+  window.addEventListener('resize',()=>{if(document.fullscreenElement)fitFullscreen();});
+  document.querySelector('#show-curves').onclick=()=>show(false);
+  document.querySelector('#show-axis').onclick=()=>show(true);
+  document.querySelector('#target').onclick=target;
+  document.querySelector('#fullscreen').onclick=fullscreen;
+  document.addEventListener('keydown',event=>{
+    if(event.target.tagName==='BUTTON' && event.key===' ') return;
+    if(event.key==='1') show(false);
+    if(event.key==='2') show(true);
+    if(event.key===' '){event.preventDefault();target();}
+    if(event.key.toLowerCase()==='f') fullscreen();
+  });
+</script>
+</html>
