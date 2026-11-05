@@ -2,6 +2,8 @@
 
 # projectRicoh
 
+想适配其他单元，例如 P10？请先看[新单元适配指南](docs/ADAPTING_A_NEW_UNIT.md)。项目公开研究方法和自编代码，官方固件及本地数据需要自行准备。
+
 Ricoh GXR 色彩配方扩展研究。当前先集中 A12 50mm Macro，首版目标为16个列表配方并同时保存配方 JPEG 与 DNG RAW。
 
 [路线图：把 GXR 改成现代 GR](docs/ROADMAP.md) · [当前协作流程与操作清单](docs/A12_50_COLLABORATION.md) · [首轮结论与实现路线](docs/RESEARCH.md) · [研究协议](docs/RESEARCH_PROTOCOL.md)
