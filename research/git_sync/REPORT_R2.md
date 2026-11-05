@@ -162,3 +162,12 @@ nice -n 15 python3 -I -B research/git_sync/audit_sync_r2.py \
 并发固件及研究的后续版本不在这 335 个文件内。同步它们时须重新冻结、审核和验收，不能整体暂存工作树。完整模拟器仍未准入，历史研究的私有输入也未补齐；外部开发者应按自己的方法重建，并承担非官方修改的设备风险。本项目不提供适配或恢复支持。
 
 仓库当前没有已跟踪的 `LICENSE`。本轮没有替机主选择授权条款，外部复用自编源码的许可仍需机主明确。
+
+## 2026-11-06 追记：既有阻塞已处理
+
+父任务按本报告"推送阻塞"一节处理了三份旧报告。处理方式是改写尚未公开的本地历史，而不是在后续提交里删除：
+
+- `research/stage1b_recovery/NATIVE_GATES_UPDATE_TRACE.md` 在公开历史中换成说明页，完整原文移到 `research/stage1b_recovery/local/NATIVE_GATES_UPDATE_TRACE.orig.md`。
+- `research/v310_resident/ABI.md`、`ABI_R2.md` 的三处 H50/H51/H52 原字节单元格改为"原字节仅存本地副本"，原文移到 `research/v310_resident/local/`。
+- 改写只涉及 `origin/main` 之后未推送的 6 条提交。提交说明、作者和时间保持不变，除这三份文件外树内容逐字节不变。改写前的本地历史留在只在本机的分支 `backup/pre-redact-20261106`，不得推送。
+- 改写后用 `audit_sync_r2.py --ref HEAD --history` 对整条待推送历史重跑：6,527 个版本、6,515 个路径；原厂字面匹配、指令上下文、原字节表、反汇编清单和内嵌图像均为 0，退出码 0。
