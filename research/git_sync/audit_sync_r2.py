@@ -9,7 +9,7 @@ Passing this scanner does not establish ownership or hardware compatibility.
 
 import argparse
 import ast
-from collections import Counter
+from functools import lru_cache
 import hashlib
 import importlib.util
 import json
@@ -36,7 +36,8 @@ EXTRA = {
     "listing_without_colon": re.compile(
         r"(?i)^\s*(?:0x)?[0-9a-f]{8}\s+(?:[0-9a-f]{4,8}\s+)+.*\b(?:ldi|ld|st|add|sub|cmp|bne|beq|bra|jmp|jl|seth|or3|mv)\b"),
     "gps_coordinate_literal": re.compile(
-        r"(?i)(?:GPSLatitude|GPSLongitude|gps_latitude|gps_longitude)[\"']?\s*[:=]\s*[-+]?\d+(?:\.\d+)?"),
+        r"(?i)(?:GPSLatitude|GPSLongitude|gps_latitude|gps_longitude)[\"']?\s*[:=]\s*[\"']?[-+]?\d+(?:\.\d+)?"),
+    "embedded_image_payload": re.compile(r"(?:/9j/|iVBORw0KGgo)[A-Za-z0-9+/=]{200,}"),
 }
 BYTE_MAGIC = b"GXRCE001"
 
@@ -47,6 +48,15 @@ def git(*args):
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
+
+
+@lru_cache(maxsize=1)
+def approved_charts():
+    receipt = json.loads(git("show", START + ":research/git_sync/PROBE_CHECK.json"))
+    if not receipt["chart_rebuild_sha256_identical"]:
+        raise ValueError("chart provenance receipt did not pass")
+    return {p: digest for p, digest in receipt["public_files"].items()
+            if rules.APPROVED_PNG.fullmatch(p)}
 
 
 def literal_bytes(body, suffix):
@@ -98,6 +108,8 @@ def scan_blob(path, oid, mode, data, official=()):
         row["errors"].append("non_regular_git_entry")
     if p.parts[0] in {"captures", "artifacts", "sources"} or "local" in parts or any(s.startswith("local_") for s in parts):
         row["errors"].append("private_path")
+    if p.parts[0] == "tools" and path != "tools/loadgate.py":
+        row["errors"].append("tool_outside_R2_admission")
     if p.suffix.lower() in rules.BINARY and not rules.APPROVED_PNG.fullmatch(path):
         row["errors"].append("binary_or_media_extension")
     if re.fullmatch(r"(?:[ijknq]launch\d+|l\d+firm\d+)", p.name, re.I):
@@ -112,9 +124,20 @@ def scan_blob(path, oid, mode, data, official=()):
         row["approved_chart_png"] = True
         if not data.startswith(b"\x89PNG\r\n\x1a\n"):
             row["errors"].append("invalid_chart_png")
+        if row["sha256"] != approved_charts().get(path):
+            row["errors"].append("chart_provenance_hash_mismatch")
         return row
     if data.startswith((b"\xff\xd8\xff", b"\x89PNG", b"II*\0", b"MM\0*", b"\x7fELF")):
         row["errors"].append("media_or_executable_signature")
+    if official:
+        header_hits = 0
+        for image in official:
+            # Nonuniform header/payload samples supplement full-file hashes and format checks.
+            samples = [image[o:o + 32] for o in (0, 0x100, 0x200, 0x400)]
+            if any(len(x) == 32 and len(set(x)) >= 8 and x in data for x in samples):
+                header_hits += 1
+        if header_hits:
+            row["errors"].append("official_raw_fingerprint")
     try:
         body = data.decode("utf-8")
     except UnicodeDecodeError:
@@ -129,9 +152,9 @@ def scan_blob(path, oid, mode, data, official=()):
     for number, line in enumerate(body.splitlines(), 1):
         if not line.lstrip().startswith("|"):
             byte_table = False
-        elif "原字节" in line or "original bytes" in line.lower():
+        elif not byte_table and ("原字节" in line or "original bytes" in line.lower()):
             byte_table = True
-        elif byte_table and re.search(r"(?<![\w])[0-9a-fA-F]{8}(?![\w])", line):
+        if byte_table and re.search(r"(?<![\w])[0-9a-fA-F]{8}(?![\w])", line):
             table_lines.append(number)
     if table_lines:
         row["references"]["original_byte_table"] = {"count": len(table_lines), "lines": table_lines}
@@ -140,6 +163,8 @@ def scan_blob(path, oid, mode, data, official=()):
         row["errors"].append("secret_pattern")
     if row["references"].get("gps_coordinate_literal"):
         row["errors"].append("literal_GPS_coordinate")
+    if row["references"].get("embedded_image_payload"):
+        row["errors"].append("embedded_image_payload")
     matches = []
     for line, value, kind in literal_bytes(body, p.suffix.lower()):
         # Plain names, format markers and filler are not firmware instruction samples.
@@ -149,15 +174,6 @@ def scan_blob(path, oid, mode, data, official=()):
             matches.append({"line": line, "bytes": len(value), "kind": kind})
     if matches:
         row["official_literal_matches"] = matches
-    if official:
-        header_hits = 0
-        for image in official:
-            # Check nonuniform header/payload samples. Full-file hash and format checks are separate.
-            samples = [image[o:o + 32] for o in (0, 0x100, 0x200, 0x400)]
-            if any(len(x) == 32 and len(set(x)) >= 8 and x in data for x in samples):
-                header_hits += 1
-        if header_hits:
-            row["errors"].append("official_raw_fingerprint")
     return row
 
 

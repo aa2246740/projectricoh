@@ -1,0 +1,244 @@
+{
+  "schema": "projectricoh-public-sync-r2/1",
+  "recorded_at_utc": "2026-11-05T17:46:29.924115+00:00",
+  "status": "needs-human-confirmation",
+  "push_allowed": false,
+  "network_used": false,
+  "camera_or_SD_access": false,
+  "base": "7ba9cb4a2d921cd5ad88f037c1e9693323bad05f",
+  "cached_origin_main": "ae01c96c97be1d6edfa82d22e3109891dd906d5b",
+  "content_head": "e0f364c4917746787298c73e467fdc424e7a8ec5",
+  "new_commit_count_including_report": 5,
+  "commits_before_report": [
+    {
+      "sha": "92045ccdd9cdcfcb19f61e166b002c8465c36bcd",
+      "subject": "Add local unit preparation and public-sync audit tools"
+    },
+    {
+      "sha": "8759fc72cfe1a4154e23c9b8fa210e6b0271be91",
+      "subject": "Publish reviewed research and adaptation source snapshots"
+    },
+    {
+      "sha": "b3b3f20f72677a2e7f2e17c5a889678e4584602e",
+      "subject": "Sync reviewed unit, color and probe research reports"
+    },
+    {
+      "sha": "e0f364c4917746787298c73e467fdc424e7a8ec5",
+      "subject": "Document independent ports to new GXR units"
+    }
+  ],
+  "report_commit": "Resolve with git log -1 --format=%H -- research/git_sync/REPORT_R2.md",
+  "new_public_paths": 335,
+  "new_public_categories": {
+    ".md": 64,
+    ".py": 252,
+    ".html": 2,
+    ".gitignore": 11,
+    ".tsv": 1,
+    ".json": 2,
+    ".mjs": 3
+  },
+  "initial_candidate_paths": 1709,
+  "initial_classifications": {
+    "commit": 328,
+    "keep-local": 802,
+    "unsure": 579
+  },
+  "additional_delivery_paths": 7,
+  "late_pending_paths": 10,
+  "final_selected_inventory": {
+    "keep-local": 812,
+    "commit": 335,
+    "unsure": 579
+  },
+  "full_inventory_scope": "Selected source candidates plus ordinary untracked and modified paths, not every ignored local artifact. Earlier R1 local inventories remain unchanged.",
+  "inherited_push_blockers": [
+    {
+      "path": "research/stage1b_recovery/NATIVE_GATES_UPDATE_TRACE.md",
+      "commit": "7ba9cb4a2d921cd5ad88f037c1e9693323bad05f",
+      "sha256": "b1d9cf7d2da558c1005c847e43289ce17326d2fe71ba29e6e53efe7dd60fcc05",
+      "confirmed_original_byte_lines": [
+        {
+          "line": 21,
+          "matching_words": 4
+        },
+        {
+          "line": 31,
+          "matching_words": 1
+        },
+        {
+          "line": 32,
+          "matching_words": 1
+        },
+        {
+          "line": 42,
+          "matching_words": 1
+        },
+        {
+          "line": 49,
+          "matching_words": 3
+        },
+        {
+          "line": 58,
+          "matching_words": 3
+        },
+        {
+          "line": 70,
+          "matching_words": 3
+        },
+        {
+          "line": 72,
+          "matching_words": 6
+        },
+        {
+          "line": 80,
+          "matching_words": 6
+        },
+        {
+          "line": 89,
+          "matching_words": 3
+        }
+      ]
+    },
+    {
+      "path": "research/v310_resident/ABI.md",
+      "commit": "7ba9cb4a2d921cd5ad88f037c1e9693323bad05f",
+      "sha256": "1b0bb3b94735f96acaccb0eb9fc1318e1eee19133397579108ed03353caa942f",
+      "confirmed_original_byte_lines": [
+        {
+          "line": 21,
+          "matching_words": 1
+        },
+        {
+          "line": 22,
+          "matching_words": 1
+        },
+        {
+          "line": 23,
+          "matching_words": 1
+        }
+      ]
+    },
+    {
+      "path": "research/v310_resident/ABI_R2.md",
+      "commit": "7ba9cb4a2d921cd5ad88f037c1e9693323bad05f",
+      "sha256": "6e6b261ddfe037905818135ef7b135973baa6f6e3ace8bbe0140c7973e58f5b1",
+      "confirmed_original_byte_lines": [
+        {
+          "line": 19,
+          "matching_words": 1
+        },
+        {
+          "line": 20,
+          "matching_words": 1
+        },
+        {
+          "line": 21,
+          "matching_words": 1
+        }
+      ]
+    }
+  ],
+  "new_content_scan_before_metadata": {
+    "base": "7ba9cb4a2d921cd5ad88f037c1e9693323bad05f",
+    "ref": "e0f364c4917746787298c73e467fdc424e7a8ec5",
+    "history": true,
+    "path_versions": 332,
+    "unique_paths": 332,
+    "hard_error_versions": 0,
+    "official_literal_match_versions": 0,
+    "firmware_word_context_versions": 0,
+    "original_byte_table_versions": 0,
+    "listing_versions": 0,
+    "content_flag_versions": 59,
+    "reference_versions": {
+      "dat_magic_text": 10,
+      "local_reference": 184,
+      "gps_reference": 11,
+      "firmware_word_context": 0,
+      "listing_without_colon": 0,
+      "gps_coordinate_literal": 0
+    },
+    "approved_chart_png_versions": 0,
+    "max_blob_bytes": 88787,
+    "limits": "Pattern and local-byte checks require source review. Header fingerprints are sampled. No hardware or legal acceptance.",
+    "official_fingerprint_input_count": 29
+  },
+  "all_pending_scan_before_metadata": {
+    "base": "ae01c96c97be1d6edfa82d22e3109891dd906d5b",
+    "ref": "e0f364c4917746787298c73e467fdc424e7a8ec5",
+    "history": true,
+    "path_versions": 6523,
+    "unique_paths": 6512,
+    "hard_error_versions": 0,
+    "official_literal_match_versions": 0,
+    "firmware_word_context_versions": 1,
+    "original_byte_table_versions": 2,
+    "listing_versions": 1,
+    "content_flag_versions": 71,
+    "reference_versions": {
+      "dat_magic_text": 69,
+      "local_reference": 2636,
+      "gps_reference": 14,
+      "firmware_word_context": 1,
+      "listing_without_colon": 1,
+      "gps_coordinate_literal": 0,
+      "embedded_image_payload": 0
+    },
+    "approved_chart_png_versions": 7,
+    "max_blob_bytes": 980291,
+    "limits": "Pattern and local-byte checks require source review. Header fingerprints are sampled. No hardware or legal acceptance.",
+    "official_fingerprint_input_count": 29
+  },
+  "gitleaks": {
+    "version": "8.30.1",
+    "raw_findings": 1,
+    "reviewed_false_positives": 1,
+    "unresolved_credentials": 0,
+    "file": "research/module_adapt/selfcheck.py",
+    "line": 114,
+    "reason": "Synthetic calibration label selects output filename; no authentication credential."
+  },
+  "prepare_workspace_check": {
+    "official": {
+      "unit": "p10",
+      "prefix": "klaunch",
+      "official_members_verified": 29,
+      "main_section_counts": {
+        "ilaunch3": 16,
+        "klaunch3": 16
+      },
+      "extracted": true,
+      "inventory": "research/git_sync/local/r2/prepare-p10/inventory.json",
+      "current_engine_support": false
+    },
+    "verified_files": 30,
+    "idempotent_hashes": true,
+    "negative_cases": [
+      {
+        "case": "wrong_archive",
+        "rejected": true,
+        "no_output_created": true
+      },
+      {
+        "case": "nonlocal_output",
+        "rejected": true,
+        "no_output_created": true
+      }
+    ]
+  },
+  "scanner_check": {
+    "private_official_hex_canary_detected": true,
+    "private_official_raw_canary_detected": true,
+    "DAT_header_canary_detected": true,
+    "chart_name_reuse_rejected": true,
+    "source_format_marker_allowed": true,
+    "all_three_inherited_hook_rows_detected": true
+  },
+  "post_commit_receipts": "research/git_sync/local/r2/final-*-summary.json (not published)",
+  "limitations": [
+    "Three inherited files contain original instruction words or disassembly. No history rewrite was authorized.",
+    "New firmware and concurrent research directories remain pending.",
+    "No complete port, device acceptance, full emulator runtime or old public-history clearance is claimed."
+  ]
+}
