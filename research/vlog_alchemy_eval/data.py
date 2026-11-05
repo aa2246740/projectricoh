@@ -1,6 +1,7 @@
 """Deterministic scene sampling and colour metrics using the current Studio path."""
 import hashlib
 import json
+import sys
 from pathlib import Path
 import numpy as np
 from support import ROOT, HERE, DATA, SCRATCH, digest, exif, dump, check_time
@@ -143,7 +144,7 @@ def input_receipts(scene_rows):
     return [{'path':str(p.relative_to(ROOT)),'sha256':digest(p),'bytes':p.stat().st_size}
             for p in sorted(set(paths))]
 
-def camera_model():
+def camera_model(ui=0, *, geometry=None):
     from gxr_studio.camdata.datcodec import parse
     from gxr_studio.camdata.calib import stock_words_of_entry
     from gxr_studio.engine.model import Model
@@ -151,13 +152,27 @@ def camera_model():
     dat=parse(dat_path.read_bytes())
     npz=ROOT/'research/color_fit_v2/06_classic_neg/round4/local/cache/data_200.npz'
     ring=ROOT/'research/hue_ring/local/ring_model_v2.json'
+    sys.path.insert(0, str(ROOT/'research/module_adapt'))
+    from c040 import module_spec, geometry_mode
+    unit = ('a12-50', 'a12-28', 'mount-a12')[ui]
     with np.load(npz,allow_pickle=False) as z:
-        stock=stock_words_of_entry(dat.entry_of(0,4))
-        if not np.array_equal(stock,z['stock']):
+        stock=stock_words_of_entry(dat.entry_of(ui,4))
+        if ui == 0 and not np.array_equal(stock,z['stock']):
             raise ValueError('Calibration stock differs')
-        model=Model(stock,z['d0'].copy(),z['d1'].copy(),json.loads(ring.read_text()))
+        d0, d1 = z['d0'].copy(), z['d1'].copy()
+        if ui != 0:
+            official = json.loads((ROOT/'research/module_adapt/local/official_parameters.json').read_text())['units'][('50mm','28mm','mount')[ui]]
+            display = json.loads((ROOT/'research/stage2e_verification/local/measurements.json').read_text())['frames']['R8051160']['meta']['display']
+            d0, d1 = np.zeros(24), np.zeros(24)
+            for i, color in enumerate(('orange','green','blue','red','magenta')):
+                selected = np.array([bool(int(official['mask'][i]) & (1 << j)) for j in range(24)])
+                level = int(display[color+'_hue'])-1
+                d0[selected] = np.asarray(official['d0_levels'])[level, selected]
+                d1[selected] = np.asarray(official['d1_levels'])[level, selected]
+        model=Model(stock,d0,d1,module_spec(json.loads(ring.read_text()),unit,geometry))
     return model,dat,{'dat':str(dat_path.relative_to(ROOT)),'dat_sha256':digest(dat_path),
                      'npz':str(npz.relative_to(ROOT)),'npz_sha256':digest(npz),
                      'ring':str(ring.relative_to(ROOT)),'ring_sha256':digest(ring),
-                     'calibrated_unit':'a12-50','calibrated_iso':200,
-                     'other_units':'50mm 模型迁移，未标定'}
+                     'model_unit':unit,'calibrated_unit':'a12-50','calibrated_iso':200,
+                     'c040_geometry':geometry_mode(geometry),
+                     'other_units':'module-native C040/C080; empirical kernel transferred from 50mm; legacy evaluator does not apply a per-unit RAW residual'}

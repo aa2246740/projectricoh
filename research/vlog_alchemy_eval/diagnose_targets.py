@@ -39,6 +39,7 @@ def main():
     bas=[];xs=[]
     for a,m in ss:
         v=a['valid'];ui=0 if m['unit']=='a12-50' else 2
+        model, _, _ = camera_model(ui)
         bas.append(model.predict(dat.entry_of(ui,4),a['codes'][v]));xs.append(a['xyz'][v])
     base=np.vstack(bas);xyz=np.vstack(xs)
     outputs={j['name']:Target(Cube.read(j['path']),j['input'],j['output']).render(base,xyz)/255

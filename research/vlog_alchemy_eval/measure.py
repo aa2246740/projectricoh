@@ -141,6 +141,7 @@ def creator_inputs(scene_rows):
                 'ground_truth':'没有创作者配对原图与目标图，输入空间只能按标记和行为推断'}
         for arrays,meta in scene_rows:
             unit=0 if meta['unit']=='a12-50' else 2
+            model, _, _ = camera_model(unit)
             valid=arrays['valid']
             codes=arrays['codes'][valid]
             xyz=arrays['xyz'][valid]

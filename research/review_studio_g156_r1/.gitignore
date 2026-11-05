@@ -1,0 +1,8 @@
+tmp/
+cache/
+home/
+parent-static/
+parent-generation/
+frontend-copy/
+frontend-copy-linked/
+evidence/

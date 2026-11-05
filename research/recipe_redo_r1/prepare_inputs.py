@@ -137,12 +137,18 @@ def main():
             d.release()
             C = np.zeros((4, 3))
             coefficients_source = 'none; no usable paired 28mm 04 calibration'
+        rebuilt = rt.input_map_path(unit)
+        if rebuilt is not None:
+            calibration = rt.read(rebuilt)
+            C = np.asarray(calibration['coefficients'])
+            coefficients_source = str(rebuilt)
         definition = dict(unit=unit, calibration_coefficients=C,
+            c040_geometry=rt.geometry_mode(),
             calibration_source=coefficients_source, reference_raw_path=reference_record['path'],
             reference_raw_sha256=reference_record['sha256'], neutral=reference['neutral'], matrix=reference['matrix'],
             middle_gray_anchor=camera.anchor, anchor_scope='existing 50mm measured anchor; no independent physical colorimetric truth',
             metadata_only_reference=True, target_style_pixels_used=False,
-            no_observed_28mm_response=unit == 'a12-28')
+            no_observed_28mm_response=unit == 'a12-28' and rebuilt is None)
         output = rt.LOCAL / 'inputs' / unit
         output.mkdir(parents=True, exist_ok=True)
         rt.dump(output / 'definition.json', definition)

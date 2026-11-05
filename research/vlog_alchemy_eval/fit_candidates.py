@@ -158,9 +158,10 @@ def main():
              'source_sha256':digest(job['path']),'input':job['input'],'output':job['output'],
              'interpretation':job.get('interpretation','declared'), 'fit':fit_info,'units':{}}
         for ui,unit in enumerate(('a12-50','a12-28','mount-a12')):
-            base=model.predict(dat.entry_of(ui,4),testx,bw_chroma='zero')
+            unit_model, _, _ = camera_model(ui)
+            base=unit_model.predict(dat.entry_of(ui,4),testx,bw_chroma='zero')
             want=target.render(base,xyz_of(testx))
-            pred=np.rint(model.predict(entry,testx,bw_chroma='zero'))
+            pred=np.rint(unit_model.predict(entry,testx,bw_chroma='zero'))
             synthetic_score=score(base,pred,want)
             photo_scores=[]
             for arrays,meta in scene_hold:
@@ -169,9 +170,9 @@ def main():
                 valid=np.flatnonzero(arrays['valid'])
                 take=valid[np.linspace(0,len(valid)-1,min(2500,len(valid))).astype(int)]
                 x=arrays['codes'][take]
-                base=model.predict(dat.entry_of(ui,4),x,bw_chroma='zero')
+                base=unit_model.predict(dat.entry_of(ui,4),x,bw_chroma='zero')
                 want=target.render(base,arrays['xyz'][take])
-                pred=np.rint(model.predict(entry,x,bw_chroma='zero'))
+                pred=np.rint(unit_model.predict(entry,x,bw_chroma='zero'))
                 photo_scores.append({'path':meta['path'],'iso':meta['iso'],
                                      **score(base,pred,want)})
             # Pooled holdout has equal maximum sample count per photo.
@@ -182,8 +183,8 @@ def main():
                     valid=np.flatnonzero(arrays['valid'])
                     take=valid[np.linspace(0,len(valid)-1,min(2500,len(valid))).astype(int)]
                     x=arrays['codes'][take]
-                    b=model.predict(dat.entry_of(ui,4),x,bw_chroma='zero')
-                    bs.append(b);ps.append(np.rint(model.predict(entry,x,bw_chroma='zero')))
+                    b=unit_model.predict(dat.entry_of(ui,4),x,bw_chroma='zero')
+                    bs.append(b);ps.append(np.rint(unit_model.predict(entry,x,bw_chroma='zero')))
                     ts.append(target.render(b,arrays['xyz'][take]))
                 pooled=score(np.vstack(bs),np.vstack(ps),np.vstack(ts))
             else:

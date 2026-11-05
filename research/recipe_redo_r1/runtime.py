@@ -12,6 +12,8 @@ from gxr_studio.camdata.datcodec import parse
 from gxr_studio.engine.colour import lab_from_codes, delta_e00, de00_components
 
 _models = {}
+sys.path.insert(0, str(ROOT/'research/module_adapt'))
+from c040 import geometry_mode, module_spec, input_map_path
 
 
 def to_words(Zrow, ctx):
@@ -52,9 +54,11 @@ def source_copy(rel):
     return destination
 
 
-def camera_model(ui=0, transferred=False, iso=200):
+def camera_model(ui=0, transferred=False, iso=200, *, geometry=None):
+    """Native unit model; transferred=True explicitly retains the whole 50mm comparator."""
     model_iso = 1600 if iso >= 566 else 200
-    key = ui, transferred, model_iso
+    geometry = geometry_mode('legacy50' if transferred and geometry is None else geometry)
+    key = ui, transferred, model_iso, geometry
     if key not in _models:
         cp = source_copy(f'research/color_fit_v2/06_classic_neg/round4/local/cache/data_{model_iso}.npz')
         rp = source_copy('research/hue_ring/local/'+('ring_model_v2_iso1600.json' if model_iso == 1600 else 'ring_model_v2.json'))
@@ -75,7 +79,8 @@ def camera_model(ui=0, transferred=False, iso=200):
                 assert data['sat_levels'][int(display[color+'_saturation'])-1] == 100 or np.all(np.asarray(data['sat_levels'])[int(display[color+'_saturation'])-1, selected] == 100)
             entry = dat.entry_of(ui, 4)
             stock = np.array([fs.decode_word(entry[115+i*4:119+i*4]) for i in range(24)])
-        _models[key] = Model(stock, d0, d1, read(rp))
+        unit = ('a12-50', 'a12-28', 'mount-a12')[ui]
+        _models[key] = Model(stock, d0, d1, module_spec(read(rp), unit, geometry))
     return _models[key]
 
 
@@ -87,8 +92,8 @@ def release_dat():
 
 
 class Camera:
-    def __init__(self, ui=0, transferred=False):
-        self.model = camera_model(ui, transferred)
+    def __init__(self, ui=0, transferred=False, *, geometry=None):
+        self.model = camera_model(ui, transferred, geometry=geometry)
         self.E = self.model.engine
         self.mm, self.fs = mm, fs
         self.entry = release_dat().entry_of(ui, 4)
@@ -128,6 +133,18 @@ LegacyProblem, weights = load_fit_helpers()
 
 
 def arrays(path):
+    p = Path(path).resolve()
+    for unit in ('a12-28', 'mount-a12'):
+        definition = None
+        if p.is_relative_to(LOCAL/'inputs'/unit):
+            definition = LOCAL/'inputs'/unit/'definition.json'
+        elif p.is_relative_to(LOCAL/'targets'/unit) and p.name[:2].isdigit():
+            definition = p.parent/(p.name[:2]+'.json')
+        if definition is not None and definition.is_file():
+            actual = read(definition).get('c040_geometry', 'legacy50')
+            if actual != geometry_mode():
+                raise ValueError('C040/input model mismatch: rebuild inputs and targets for '+unit+
+                    ', or explicitly use GXR_C040_GEOMETRY=legacy50 for the frozen old study')
     with np.load(path, allow_pickle=False) as z:
         return dict(z)
 

@@ -145,6 +145,7 @@ def main():
                 shipped_in_g154_looks18=False, current_row_scope='g154 looks18 built-in published row',
                 target_scope='historical F-Log2/F-Gamut 65-grid' if slot in (5, 6) else 'look-ceiling declared target')
         meta.update(unit=args.unit, camera_ui=ui, template_hex=template.hex(), template_sha256=hashlib.sha256(template).hexdigest(),
+            c040_geometry=rt.geometry_mode(),
             release_dat_sha256=rt.sha(rt.SOURCE/'firmware/package_v39_g154_looks18_test/local/SD_ROOT/GXRCE.DAT'),
             main_level=0 if ui == 2 else 1, S_mode='04 Standard',
             retained_current_row_for_comparison=True, no_dat_built=True,
