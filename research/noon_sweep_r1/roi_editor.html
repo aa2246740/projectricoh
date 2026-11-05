@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>午间照片区域模板</title>
+<style>
+*{box-sizing:border-box}body{margin:20px;background:#f4f3ef;color:#242424;font:15px system-ui;line-height:1.5}
+main{max-width:1400px;margin:auto}h1{font-size:24px;margin:0 0 6px}p{margin:8px 0 14px}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}button,select,input{font:inherit;padding:7px 10px}
+button{background:white;border:1px solid #aaa;border-radius:5px;cursor:pointer}button:focus-visible,select:focus-visible{outline:3px solid #3974b2}
+canvas{display:block;max-width:100%;height:auto;background:#ddd;touch-action:none;cursor:crosshair;border:1px solid #aaa}
+textarea{width:100%;min-height:220px;font:12px monospace;margin-top:12px}output{font-variant-numeric:tabular-nums}
+.note{font-size:13px;color:#555}.current{background:#dde9f7}
+</style>
+<main>
+<h1>午间照片区域模板</h1>
+<p>全部在本机运行。先选相机 JPEG，再点色卡的左上、右上、右下、左下四角。皮肤、蓝物、绿叶用鼠标拖框；换照片后逐张核对。</p>
+<div class="controls">
+<label>照片 <input id="files" type="file" accept="image/jpeg,image/png" multiple></label>
+<label>已有模板 <input id="load" type="file" accept=".json"></label>
+</div>
+<div class="controls">
+<button id="prev">上一张</button><select id="frame" aria-label="当前照片"></select><button id="next">下一张</button>
+<label>类型 <select id="kind"><option value="physical">实物</option><option value="screen">屏幕页</option><option value="skip">跳过</option></select></label>
+<label>设置 <select id="setting"></select></label>
+<label>场景 <select id="scene"><option value="daylight">日光</option><option value="indoor">室内</option></select></label>
+<label>页面 <select id="page"><option value="">自动</option><option>T1</option><option>T2</option><option>T3</option><option>T4</option><option>V1</option><option>V2</option><option>V3</option><option>V4</option></select></label>
+</div>
+<div class="controls">
+<button id="corners">点四角</button><button id="skin">框皮肤</button><button id="blue">框蓝物</button><button id="leaf">框绿叶</button>
+<button id="undo">撤销最后区域</button><button id="clear">清除本张区域</button>
+<button id="template">把本张区域作为共享模板</button><button id="confirm">确认本张设置</button><button id="save">导出 JSON</button>
+</div>
+<output id="status">尚未选择照片。</output>
+<canvas id="canvas" width="1400" height="800" aria-label="照片区域画布"></canvas>
+<p class="note">色卡角点对应完整 6×4 网格。屏幕四角对应网格在最外一排色块边缘的外侧半个 gutter，误差几像素不影响中央取样。共享模板只适用于机位相同的照片；移动机位时逐帧点色卡四角，再用色卡跟踪共享框，人物移动则逐帧重框。山寨色卡不输入参考色值。</p>
+<label><input id="track" type="checkbox">用每帧色卡四角跟踪共享皮肤/蓝物/绿叶框</label>
+<p class="note">把导出的文件存到 research/noon_sweep_r1/local/，用 run_noon.py 的 --manifest 参数重跑。下方 JSON 可直接复制；网页不会上传文件。</p>
+<textarea id="json" aria-label="导出的模板 JSON" readonly></textarea>
+</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const settings = ['04 Std','05 F-CC','06 F-CN','M9 STD','HNCS HiCon','Kodachrome25','HNCS LowSat','Vision3 500T'];
+settings.forEach(s => $('setting').add(new Option(s,s)));
+let files=[], urls=[], index=0, image=null, mode='corners', clicks=[], drag=null;
+let manifest={schema:'noon-sweep-manifest/1',frames:{}};
+const canvas=$('canvas'), context=canvas.getContext('2d');
+const stem=f=>f.name.replace(/\.[^.]+$/,'');
+function current(){return manifest.frames[stem(files[index])];}
+function updateJSON(){ $('json').value=JSON.stringify(manifest,null,2); }
+function saveFields(){
+ if(!files.length)return;
+ const f=current();f.kind=$('kind').value;f.setting=$('setting').value;
+ if(f.kind==='physical')f.scene=$('scene').value;
+ if(f.kind==='screen'&&$('page').value)f.page=$('page').value;else delete f.page;
+ delete f.manual_confirmation_required;
+ updateJSON();
+}
+function draw(){
+ if(!image)return;
+ context.clearRect(0,0,canvas.width,canvas.height);context.drawImage(image,0,0,canvas.width,canvas.height);
+ const f=current(), points=f.kind==='screen'?(f.corners||[]):(f.chart?.corners||[]);
+ context.lineWidth=3;context.strokeStyle='#ffcd22';context.fillStyle='#ffcd22';context.font='18px system-ui';
+ points.forEach((p,i)=>{context.beginPath();context.arc(p[0]*canvas.width,p[1]*canvas.height,5,0,Math.PI*2);context.fill();context.fillText(['TL','TR','BR','BL'][i],p[0]*canvas.width+6,p[1]*canvas.height-6);});
+ if(points.length===4){context.beginPath();points.forEach((p,i)=>i?context.lineTo(p[0]*canvas.width,p[1]*canvas.height):context.moveTo(p[0]*canvas.width,p[1]*canvas.height));context.closePath();context.stroke();}
+ for(const roi of f.rois||[]){const b=roi.box;context.strokeStyle='#2be3ea';context.strokeRect(b[0]*canvas.width,b[1]*canvas.height,(b[2]-b[0])*canvas.width,(b[3]-b[1])*canvas.height);context.fillStyle='#2be3ea';context.fillText(roi.id,b[0]*canvas.width,b[1]*canvas.height-5);}
+ if(drag?.end){const [a,b]=[drag.start,drag.end];context.strokeStyle='#fff';context.strokeRect(a[0]*canvas.width,a[1]*canvas.height,(b[0]-a[0])*canvas.width,(b[1]-a[1])*canvas.height);}
+}
+async function show(i){
+ if(!files.length)return;index=Math.max(0,Math.min(files.length-1,i));$('frame').selectedIndex=index;
+ const f=current();$('kind').value=f.kind||'physical';$('setting').value=f.setting||f.setting_hint||'04 Std';$('scene').value=f.scene||'daylight';$('page').value=f.page||f.page_hint||'';
+ clicks=[];drag=null;image=new Image();await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;image.src=urls[index];});
+ canvas.width=Math.min(1400,image.naturalWidth);canvas.height=Math.round(canvas.width*image.naturalHeight/image.naturalWidth);
+ $('status').textContent=`${files[index].name} · ${index+1}/${files.length} · ${image.naturalWidth}×${image.naturalHeight}`;
+ draw();updateJSON();
+}
+$('files').onchange=async e=>{
+ urls.forEach(URL.revokeObjectURL);files=[...e.target.files].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));urls=files.map(f=>URL.createObjectURL(f));$('frame').replaceChildren();
+ files.forEach((f,i)=>{$('frame').add(new Option(f.name,String(i)));if(!manifest.frames[stem(f)])manifest.frames[stem(f)]={kind:'physical',setting:settings[i%8],scene:'daylight'};});await show(0);
+};
+$('load').onchange=async e=>{manifest=JSON.parse(await e.target.files[0].text());manifest.frames??={};if(files.length){files.forEach(f=>manifest.frames[stem(f)]??={kind:'physical',setting:'04 Std'});await show(index);}updateJSON();};
+$('prev').onclick=()=>show(index-1);$('next').onclick=()=>show(index+1);$('frame').onchange=()=>show(Number($('frame').value));
+for(const id of ['kind','setting','scene','page'])$(id).onchange=()=>{saveFields();draw();};
+for(const name of ['corners','skin','blue','leaf'])$(name).onclick=()=>{mode=name;clicks=[];for(const key of ['corners','skin','blue','leaf'])$(key).classList.toggle('current',key===name);$('status').textContent=name==='corners'?'依次点击 TL、TR、BR、BL。':'按住鼠标拖出区域。';};
+function position(e){const b=canvas.getBoundingClientRect();return [Math.min(1,Math.max(0,(e.clientX-b.left)/b.width)),Math.min(1,Math.max(0,(e.clientY-b.top)/b.height))];}
+canvas.onpointerdown=e=>{if(!image)return;canvas.setPointerCapture(e.pointerId);if(mode==='corners'){clicks.push(position(e));if(clicks.length===4){const f=current();if(f.kind==='screen')f.corners=clicks.slice();else f.chart={cols:6,rows:4,corners:clicks.slice()};saveFields();clicks=[];draw();$('status').textContent='四角已保存，可框选其它区域或换下一张。';}else $('status').textContent=`已点 ${clicks.length}/4 个角。`;}else drag={start:position(e)};};
+canvas.onpointermove=e=>{if(drag){drag.end=position(e);draw();}};
+canvas.onpointerup=e=>{if(!drag)return;const a=drag.start,b=position(e),box=[Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[0],b[0]),Math.max(a[1],b[1])];drag=null;if(box[2]-box[0]>.005&&box[3]-box[1]>.005){const f=current();f.rois??=[];f.rois.push({id:mode+'_'+(f.rois.length+1),group:{skin:'memory_skin',blue:'blue',leaf:'memory_foliage'}[mode],box});saveFields();}draw();};
+$('undo').onclick=()=>{if(!files.length)return;const f=current();if(f.rois?.length)f.rois.pop();else{delete f.chart;delete f.corners;}saveFields();draw();};
+$('clear').onclick=()=>{if(!files.length)return;const f=current();delete f.chart;delete f.corners;delete f.rois;saveFields();draw();};
+$('template').onclick=()=>{if(!files.length)return;const f=current();manifest.physical_template={chart:{cols:6,rows:4},reference_corners:f.chart?.corners,reference_frame:stem(files[index]),rois:structuredClone(f.rois||[]),track_with_card:$('track').checked};updateJSON();$('status').textContent='共享模板已保存。移动机位的目标帧仍需色卡四角；人物移动需单独框选。';};
+$('track').onchange=()=>{if(manifest.physical_template)manifest.physical_template.track_with_card=$('track').checked;updateJSON();};
+$('confirm').onclick=()=>{saveFields();$('status').textContent='本张设置已确认；若页面或响应冲突，分析脚本仍会保留冲突。';};
+$('save').onclick=()=>{saveFields();const blob=new Blob([JSON.stringify(manifest,null,2)+'\n'],{type:'application/json'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='noon-manifest.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);};
+</script>
+</html>

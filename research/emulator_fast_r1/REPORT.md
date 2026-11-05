@@ -1,114 +1,74 @@
-严格合同验收通过，可交复审；原入口未替换。
-MAIN 50M 三对交替测速中位提高 65.35 倍；native_input_run 50M 提高 45.91 倍。
-指定流程逐检查点全状态一致；两轮 71 项反例无静默不一致；M2b 22/22、当前 M2c 21/21 使用显式参考后端。
-切换到 tools/gxr_emulator_fast/strict_r2/；普通固件输入用 native_input_run，需要可变引用或自定义 Python 的调用方用 reference。
-采用草稿、独立复审与本次任务回执仍是其他任务切换的依据；Scratch 已清理。
+可交复审
+P1-02 在本轮所测登记合同内关闭：Observer 容量及全部登记对象的构造实参与默认值进入身份；变更容量会换键，并在写入目标前拒绝。
+候选为 `tools/gxr_emulator_fast/strict_r4/`，需新 Python 进程。strict_r3 的 1460 个冻结文件未变。采用草稿见 [ADOPTION](strict_r4_final/ADOPTION.md)。
+MAIN：负载门槛未满足，不报本轮正式倍率；完整配对 0/5，最后 load1/5/15 [6.26318359375, 5.013671875, 4.6484375]。原始队列状态 ERROR，门槛明细见 speed-gate-r4.json。
+native_input_run：负载门槛未满足，不报本轮正式倍率；完整配对 4/5，最后 load1/5/15 [5.4052734375, 5.578125, 5.30126953125]。原始队列状态 DEFERRED，门槛明细见 speed-gate-r4.json。
 
-## 合同与改动
+本轮证据只覆盖宿主 strict registered-flow 合同。不是独立复审通过或相机采用结论。原 C 库和传输扩展字节复制到新目录；本轮未重编 C、未替换旧入口。native-build.json 仅用于核对实际 C 编译输入，当前 Python 源码以新登记表和交付清单为准。
 
-严格原生接受构建生成登记表中的固定设备、四项修正与钩子组合。未知覆盖层、调度方法、观察方法、包装、模块常量及其类型在进入 C 前抛出带 reference 提示的错误。自动资格路径只由显式 `GXR_FAST_POLICY=auto` 启用，不属于本轮结论。
+r4 反例先在原 strict_r3 复现：同一键让 limit=9 目标接受 limit=1 快照，20M 时只留下 1 条事件，连续参考保留 9 条。另外先复现 trace 容量恢复后才发现差异、Flow 初始 pending 漏键，两项期望断言均失败。三项失败证据见 [before-r4-recipes](strict_r4_final/runs/before-r4-recipes.json) 和 [原 20M 反例](strict_r4_final/runs/before-r4-limit-native.json)。旧脚本和原始回执保留。
 
-`ownership.py` 复制构造输入，并让公开设备、Panel、Observer 与 Flow 容器读取返回只读副本。持有视图不会得到后续原位更新；写入会报错。`native_controls` 提供登记的初始化、按键、观察与停止输入。输出记录由 C 累积，结束时导出普通副本。私有字段、原始 `__dict__` 和 Python 运行时改写不属于公开接口，采用草稿要求这些调用方使用参考后端。
+修复集中在 construction.py。LazyState 的子类构造器和 Backend 用同一个边界记录器，以 signature.bind/apply_defaults 保存所有参数，保留值类型、初始容器种类和容量。引擎引用按登记角色绑定；路径在正常校验后绑定文件字节。只读视图有明确类型声明；未知对象不获得原生资格。Observer 先构造 deque，再登记到 CPU，非法容量不会留下一半登记。
 
-| 复审项 | 严格合同下的处理 |
+本轮盘点 29 个构造器。实际 release 配方的 26 个引擎对象逐项对比签名与记录参数，两端完整构造声明也相同。未把几个字段名列成 Observer 特例。StepHook 仍由冻结工厂证书限制；只读 Image/UnitImage 由实际输入字节与模型源哈希绑定，CPU 结构容器由有效回调与内存配方覆盖。另绑定当前 mode、variant 及 trace/MMIO 的实际容量。详见 [构造器盘点](strict_r4_final/CONSTRUCTORS.md) 和 [26 对象核对](strict_r4_final/runs/constructor-coverage-r4.json)。
+
+新登记表从 17 个独立干净 reference 进程重建，含 16 种四修正组合、705 个回调代码和 68 个源文件。构造声明、覆盖层及登记表全文都受身份绑定。完整快照格式升至 r4，r3 整机快照需重建。见 [干净构建日志](strict_r4_final/runs/registry-build-final.log)。
+
+最终结果由 [assessment-final-r4](strict_r4_final/runs/assessment-final-r4.json) 逐项读取原始回执生成：
+
+| 验证 | 本轮结果 |
 | --- | --- |
-| P1-01 调度链 | 只接受登记工厂签发的完整组合；缺层、空链、None 和替换调度方法明确拒绝。 |
-| P1-02 可变关系 | 原生公开状态只读；共享可变图的快照在保存或恢复前拒绝，参考调用方保留原引用关系。 |
-| P1-03 数值状态 | 活动字段按登记类型及范围检查；超界或非整数状态明确拒绝并提示参考后端。 |
-| P1-04 快照身份 | 全文源文件、覆盖层和登记表进入键；未登记常量或定义变化在恢复改写目标前拒绝。 |
-| P1-05 覆盖与观察 | 预装未知包装、常量类型变化及观察方法原位改写均不获登记资格，明确报错。 |
+| 十类新配方变更，native/reference 各一轮 | 全部换键、写入前拒绝、目标完整指纹不变 |
+| 位置/关键字、隐式/显式默认值两类 | 相同键；三种非法容量拒绝且状态不变 |
+| 同容量 19 步保存恢复，续跑五点至 20M | 原生 0/1/9/None/16384/平台最大值均等于连续执行；0/9/None 另与本轮独立 reference 相同 |
+| 两轮相邻/原控制配方，共二十类，每个后端 | 全部通过，错误身份在改写前拒绝 |
+| 原 71 项反例、r3 六项回归 | 一项相等、其余明确拒绝；六项通过 |
+| 十六种模型组合 | 48 个全状态比较、64 次错误模型恢复拒绝通过 |
+| 输入分段与原 CPU 检查点 | 1,000,054 步业务回执及全状态相同；1,000,034 步续跑新增 31 条 C 指令 |
 
-这里关闭的是已批准收窄后的严格合同，未声称任意 Python 扩展透明等价。对应的原反例、第二轮新形态与额外变体全部在最终反例集中逐项保留。
+同容量原生恢复段真实执行 19,999,981 条 C 指令，Python 总线和 HLE 回调为零。容量 9 没有退化成容量 1。观察器总计数、事件、寄存器、全部内存、设备、控制及介质纳入独立完整指纹。
 
-完整快照键包含 67 个参与源文件的全文 SHA256、四项覆盖层、登记表自身、实际模型选择、登记配方、声明输入、实际库和 Python/架构。恢复在改变目标前检查身份与状态图。共享可变 tuple/list 图和循环关系无法表示时明确拒绝。新驱动自己的 CPU 检查点另含 145 字节架构状态；完整整机复用使用 snapshots API。
-
-C 改动限于观察后停止组合以及 BOOT_RUN/H52 的记录声明；本轮没有再改解释器调度或设备性能实现。输入驱动合并同一按键段内的执行窗口，保持原百万步回执语义。新增边界回归先复现了 1,000,000 / 2,000,000 步停止被写成 0 的问题，修正后回执与参考均记 1,000,000。零步与普通停止也通过。
-
-## 测速
-
-机器为 MacBookPro18,1、Apple M1 Pro、10 个物理/逻辑 CPU。正式运行 nice 15，按两条串行工作队列执行；正式测速每项三对，顺序 reference/native/reference/native/reference/native。负载随其他任务变化，表中保留每次前后的实测值，没有把不同负载下的功能耗时写成另一个正式速度比。
-
-MAIN 计时只包含 `cpu.run(50_000_000)`，完整状态哈希在计时外。驱动计时含构造、50M 执行和原有 CPU 检查点写入，不含模块导入；两边额外增加的完整审计导出时间单独记录并扣除。批量参考使用冻结 fix_r1 的显式 reference、fast 模式与 batching，实际执行库见回执。各次均完成目标步数、无执行错误，原生实际指令数等于本次新增步数，Python 总线/HLE 回调为零。
-
-MAIN 的进程 CPU 时间和墙钟时间保留在原始回执，执行环主要消耗单线程 CPU。C 设备执行和加大的原生窗口消除了逐批 Python 往返；完整输入驱动仍需生成记录和写检查点。各次 50M 的全状态与业务回执都比较成功，未用拒绝、预算未达标或缓存恢复替代计算。变动范围反映负载噪声，不作为固定机器性能保证。
-
-### MAIN 执行环
-
-| 对次 | 批量参考秒 | 严格原生秒 | 提高倍数 | 参考前后 1 分钟负载 | 原生前后 1 分钟负载 |
-| --- | ---: | ---: | ---: | --- | --- |
-| 1 | 98.985800 | 1.514620 | 65.35 | [6.83, 20.84] | [20.84, 20.84] |
-| 2 | 135.881925 | 2.320802 | 58.55 | [20.84, 68.62] | [66.4, 65.97] |
-| 3 | 109.315966 | 1.396632 | 78.27 | [65.97, 25.83] | [25.83, 25.83] |
-
-逐对倍数中位 65.35，范围 58.55 至 78.27。
-
-### input_run / native_input_run 完整驱动调用
-
-| 对次 | 批量参考秒 | 严格原生秒 | 提高倍数 | 参考前后 1 分钟负载 | 原生前后 1 分钟负载 |
-| --- | ---: | ---: | ---: | --- | --- |
-| 1 | 156.107593 | 6.421314 | 24.31 | [36.26, 26.58] | [26.58, 25.2] |
-| 2 | 305.223345 | 6.520039 | 46.81 | [25.2, 31.98] | [30.7, 29.44] |
-| 3 | 233.915501 | 5.095502 | 45.91 | [28.21, 50.6] | [50.6, 45.74] |
-
-逐对倍数中位 45.91，范围 24.31 至 46.81。
-
-## 等价与反例
-
-| 流程 | 最终步数 | 完整检查点数 | 结果 |
+| 登记流程 | 步数 | 完整检查点 | 与独立参考 |
 | --- | ---: | ---: | --- |
-| 冷启动、state 5、BOOT_RUN、H52 | 199,544,255 | 7 | 全状态相同，原生 100%，零 Python 总线/HLE。 |
-| 首次八行设置菜单，28mm、四项修正 | 449,600,040 | 40 | 全状态相同，原生 100%。 |
-| 官方恢复确认入口 | 65,975,242 | 4 | PC 0x2036c9e4，UI 记录与全部虚拟 NAND 页相同。 |
-| 按键、客体 SD FIFO 写入与读回 | 1,112 | 24 | 扇区 521/523 各 512 字节持久化并读回，全状态相同。 |
-| 现有 input_run 50M 用例 | 50,000,000 | 三对终点 | 完整审计状态和业务回执相同，原生 100%。 |
-| 输入驱动按键段与 CPU 检查点续跑 | 1,000,054 / 1,000,034 | 独立对照 | 状态与回执相同，续跑实际原生指令按新增步数计。 |
+| 50mm g155b 冷启动、state 5、BOOT_RUN、H52 | 199,544,255 | 7 | 相同 |
+| 28mm g154 首次八行菜单和按键段 | 449,600,040 | 40 | 相同 |
+| 官方恢复确认入口 | 65,975,242 | 4 | 相同，虚拟 NAND 页相同 |
+| MOUNT 冷启动、state 5、BOOT_RUN、ADJ 菜单 | 277,400,060 | 19 | 相同 |
+| GPIO 与 guest SD 写入/读回 | 1,112 | 24 | 相同，扇区字节相同 |
 
-全状态比较包括全部寄存器、145 字节架构状态、所有内存区域、全部设备状态、观察器、存在时 Flow 的全部记录与 pending、Panel、控制状态、事件、SD 字节、trace、MMIO、coverage、IO 计数及错误。私有介质文件路径只作同角色名称规范化，实际字节另核 SHA256。
+off/50mm/28mm/MOUNT 的 20M 快照恢复后到 50,000,013 步，每种五点相同；每个恢复段实际执行 30,000,013 条 C 指令。MOUNT 另在五个活跃保存点恢复，十五个续跑点相同，ready 队列、SD FIFO、未返回调用、按住状态和对象所有权保留。长流程及这些恢复对照明确复用 review_emulator_fast_r4 冻结的独立 Python 连续执行回执；本轮重新跑候选原生。Observer 同容量对照的 reference 是本轮新跑。
 
-BOOT_RUN 返回在 199,006,590 步，H52 继续在 199,544,255 步；state 5 检查点为 35,537,208。输入为回执中固定的 g155b、50mm 和用户设置。首次菜单使用 g154 Looks18、28mm 和四项修正。恢复使用 g155b 机身、官方 1.51 归档中的 29 个文件、单元关闭和修正关闭。SD 检查是客体指令驱动的设备路径，不是物理 SD 证明。
+首轮构造记录器曾把输入驱动的合法只读映射当成未知值，在第 0 步明确拒绝。证据保留于 strict_r4/runs/；修正后重新生成登记表，以上验收全在 strict_r4_final/ 重跑，没有拿早期成功回执代替最终源码结果。
 
-两轮反例逐项独立进程执行，共 71 项，1 项接受并与参考相同、70 项明确拒绝。接受的自修改代码还独立比较了完整参考状态。新增十项严格合同检查 10/10；原实现的十项失败前例保留。未知 Python 行为的拒绝是新合同的要求，不记成透明兼容通过。
+测速声明在运行前冻结于 [benchmark-intent](strict_r4_final/benchmark-intent.md)。两边均为 fast+batch、unit-off、四修正关闭、nice 15，同一输入的新进程交替执行 50M。前置 load1≤5.0，连续三次一秒 CPU 空闲均≥50%，测速期间无本任务其他仿真。MAIN 只计 run 与返回同步；输入驱动计构造、执行和原 CPU 检查点，扣除额外审计导出，不含导入。错误或未完成预算不算测速。每对必须全状态相同；输入驱动另核业务回执。所有原始前后负载、CPU 秒、库哈希和调度信息在 benchmark-*-r4.json 中。条件不满足时保留 DEFERRED 和已有单侧结果，不估算倍率。
 
-16 种四项修正组合完成 48 次全状态比较，均走原生；16 个独立快照键和 64 次单项变更拒绝通过，目标未被改变。完整快照保存 19 步、恢复再执行 13 步与连续 32 步一致。共享图拒绝保留原引用传播关系；只读视图修改报错；复制树中各源文件字节变化与声明输入变化均被检出。模型 BASE、常量类型和观察代码原位改写由反例组覆盖。
+限速剖析单独运行，不混入正式计时。参考侧仍承担 Python 的设备调度、批计划与回调；原生 MAIN 的采样热点为 C 的 scalar_step、gxr_machine_run 及值树操作，完整输入驱动还承担构造登记、状态同步与检查点。具体采样见 profile-reference-r4.json、profile-native.sample.txt 和 profile-input-functions.json。倍率只适用于表述的工作负载，未用未完成执行或 HALT 计算。计时图见 [benchmark.html](strict_r4_final/benchmark.html)。
 
-## 输入、历史与参考调用方
+原复审输入 456 项和参考回执 43 项已重新核对。唯一交付改写的原路径是用户要求更新的本 REPORT.md；旧报告按原 SHA256 保存在 strict_r4_final/prior/REPORT.md，发布映射单独记录于 report-publication-r4.json。没有改历史输入清单或 protected-inputs.json。原 strict_r3 的 1460 个文件再次逐项核对。
 
-M2b/M2c 原断言逻辑在新的输出目录重跑。导入/输出路径改到本候选，明确选择 reference，并记录实际加载库。M2b 22/22；历史输入守卫的 M2c 保留为 20/21，当前输入在运行前独立冻结 1841 项，运行后逐项重核，当前 M2c 21/21。这些可变 Python 调用方不计入原生比例。历史 protected-inputs.json 和历史运行结果没有改写。
+MOUNT HALF 的未声明 HSP 响应沿用复审 r4 的共有模型边界结论，本轮未重跑该 fault 分支，不算拍摄成功。采用策略不变：快路径供迭代，FAIL、OPEN、fault、DeviceBoundary、超时和未达目标，按相同冻结输入与独立虚拟介质在 Python 参考重跑并保留首次失败。
 
-原修复轮的重启一次 Python 回调记录保留。本轮另用同一完成文件介质重跑冷重启：显式参考后端实测 1 次停止观察回调，其中一次满足停止条件；严格 native_input_run 的 Python 停止/HLE 回调为零，全状态与业务回执相同。见 [重启对照](strict_r2/runs/restart-native.json)。初版计数器重复计算了注册包装链，失败日志保留；最终按实际回调入口统计，并记录步骤、任务及返回值。
+未重跑 M2b/M2c 全套或成功完整官方恢复；没有实卡 FAT32、物理 SD、刷写、断电、相机 RTOS/LCD、物理按键或拍摄证据。没有卡、相机、网络、Git 写操作或子代理。
 
-仓库 .gitignore 的既有追加段为下面内容。本轮没有编辑它；来源为当前文件与历史前缀的只读核对，不认定追加作者。
+关键冻结哈希如下；完整源码、构建产物、输入、回执、失败证据和本报告见 [SHA256SUMS](SHA256SUMS)，独立 shasum 核验回执在 strict_r4_final/runs/sha256-verification.json。
 
-```gitignore
-# Local-only look-ceiling research outputs.
-/research/look_ceiling_r1/local/
-
-# Any research task's local/ folder holds third-party-derived or Ricoh-derived data: never publish.
-/research/**/local/
+```text
+47699f02e78781241afbe90ea40ee7c3c8a60ecdb422d60e65a6baa1aaf306bf  tools/gxr_emulator_fast/strict_r4/build/libgxr_m32r.dylib
+ca9e75f68c336d670ee26a5c7944e1cb4a45580ace0c718e0b22c28e843fe51e  tools/gxr_emulator_fast/strict_r4/NATIVE_REGISTRY.json
+c9789bd03c3b9c00b2e0a8ae4a511ef5f92eb103af5ef3c023c100c30a140cbb  tools/gxr_emulator_fast/strict_r4/construction.py
+c6a682eb72300f9a9a35ffc2b38ae174117d96616668eb27a3307610c7af2251  tools/gxr_emulator_fast/strict_r4/registry.py
+e3908e9c02121ac20aaf21572ea13b6346b24a2f6932435d3d96a813986bc4b7  tools/gxr_emulator_fast/strict_r4/snapshots.py
 ```
 
-原入口及 fix_r1 的 140 项文件哈希保持不变。所有新实现和库放在 strict_r2 子目录；旧进程不需要重新加载。复制进来的 SOURCES.json 等描述迁入来源，最终权威清单是本轮最终冻结、NATIVE_REGISTRY.json、编译回执及 SHA256SUMS。
-
-功能独立参考使用冻结旧批量设备实现及本候选的 Flow 记录格式；短检查点先对照，完整结果由最终逐点比较决定。直接使用新候选 reference 的早期菜单因负载和时间预算中止，未计入正式通过。恢复初始化多写一个启动输入的失败也保留，之后按复审配方修正并重跑。所有失败、中断和试验回执的去向见运行处置记录。一个短探针曾未等待工具会话收尾便启动后续运行，它不计入正式验收或测速。
-
-## 冻结与重跑
-
-库 SHA256：`49519375b9724b41fcaf269a6d0226b171650cc30a965052664f328f2d94d254`。
-
-传输扩展 SHA256：`a2cceee24700bd8226b97e00d5df9ec9ce55087858c43151e4b9ea319dca660f`。
-
-[最终冻结](strict_r2/runs/final4-candidate.json) 核对 C 源码与五个 GNU 归档；[登记表](../../tools/gxr_emulator_fast/strict_r2/NATIVE_REGISTRY.json) 冻结模型源和定义。最终冻结与测试源码冻结相比只允许 README、REPORT、CHANGES 三个 Markdown 文件变化。完整源码、脚本、回执、介质与报告哈希见 [SHA256SUMS](SHA256SUMS)，新命名空间内另有同一份清单。
-
-主要证据为 [最终判定](strict_r2/runs/assessment.json)、[采用草稿](strict_r2/ADOPTION.md)、[修正矩阵](strict_r2/runs/model-matrix.json)、[完整快照](strict_r2/runs/snapshot-acceptance.json)、[两轮反例](strict_r2/runs/final3-replay.json)、[M2 参考验收](strict_r2/runs/reference-acceptance.json) 和 [测速图](strict_r2/benchmark.html)。原报告、原进度和原哈希清单保存在 strict_r2/prior。
-
-从项目根目录运行，名称和私有输出必须换新；脚本拒绝覆盖已有回执。先按采用草稿启动 fresh process。用于本次验收的精确参数见 queue-final2-native-and-bench.json、queue-final2-reference.json、queue-final3-validation.json 及相应脚本。汇总只读取已完成回执，缺项会失败。
+从仓库根目录重跑。NEW_NAME 必须未使用；脚本拒绝覆盖已有证据。全队列的每条命令和超时见 lane-*-r4.json，若完整重跑需复制脚本到新的同层证据目录并改输出绑定，保留当前回执。
 
 ```sh
-nice -n 15 /usr/bin/python3 -I -B research/emulator_fast_r1/strict_r2/scripts/flows.py --backend native --kind release --name NEW-NATIVE
-nice -n 15 /usr/bin/python3 -I -B research/emulator_fast_r1/strict_r2/scripts/flows.py --backend reference --oracle legacy --kind release --name NEW-REFERENCE
-nice -n 15 /usr/bin/python3 -I -B research/emulator_fast_r1/strict_r2/scripts/assess.py
+nice -n 15 /usr/bin/python3 -I -B research/emulator_fast_r1/strict_r4_final/scripts/accept_r4.py isolation --backend native --name NEW_NAME
+nice -n 15 /usr/bin/python3 -I -B research/emulator_fast_r1/strict_r4_final/scripts/accept_r4.py resume --backend native --limit 9 --name NEW_NAME
+nice -n 15 /usr/bin/python3 -I -B research/emulator_fast_r1/strict_r4_final/scripts/accept_r4.py resume --backend reference --limit 9 --name NEW_NAME
+nice -n 15 /usr/bin/python3 -I -B research/emulator_fast_r1/strict_r4_final/scripts/benchmark_r3.py --kind main --pairs 5 --label NEW_LABEL
+nice -n 15 /usr/bin/python3 -I -B research/emulator_fast_r1/strict_r4_final/scripts/benchmark_r3.py --kind input --pairs 5 --label NEW_LABEL
+nice -n 15 /usr/bin/shasum -a 256 -c research/emulator_fast_r1/SHA256SUMS
 ```
 
-重新验证前按 runner.py 的声明重建本任务的 Scratch 目录，结束后删除。不要再次运行 finalize.py 覆盖本轮冻结；新修改使用新的命名空间。运行中的断点、源文件和介质不可从别的进程改写。
-
-本轮没有运行成功完整官方恢复、实卡 FAT32、真实 SD、刷写、断电、相机 RTOS/LCD、物理按键或拍摄；本结论只覆盖上述宿主模型和严格合同。
+本轮临时目录已清理，没有本任务残留仿真。清理回执见 strict_r4_final/runs/cleanup-r4.json。
