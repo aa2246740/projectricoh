@@ -1,0 +1,50 @@
+{
+  "format": "gxr-public-patch/1",
+  "target_name": "qlaunch3",
+  "base_sha256": "e487d00b5539aa1e3ca9373829456e00676b37310dc717f0a5bcb5235bac6690",
+  "result_sha256": "aed12aee9ea26f5a6839cef6a6380497a1b21342bf551f93878671e877d5d27a",
+  "result_size": 2505308,
+  "copy_min_length": 12,
+  "checksum": {
+    "algorithm": "gxr151-weighted-residue",
+    "payload_offset": 512,
+    "field_offset": 364,
+    "phase": 0
+  },
+  "accounting": {
+    "literal_bytes": 8,
+    "copy_bytes": 0,
+    "checksum_recomputed_bytes": 4,
+    "hunks": 4
+  },
+  "hunks": [
+    {
+      "op": "literal",
+      "offset": 1422622,
+      "length": 2,
+      "base_sha256": "a63bf560302215b5727e678719764c29f313576568dfd96279195fd63d670d4d",
+      "new_hex": "0630"
+    },
+    {
+      "op": "literal",
+      "offset": 1422874,
+      "length": 2,
+      "base_sha256": "205022e3428b7c8276cf247b36e4e512db5651e5cb3472c253d9ee893a8ac750",
+      "new_hex": "0278"
+    },
+    {
+      "op": "literal",
+      "offset": 1456754,
+      "length": 2,
+      "base_sha256": "a63bf560302215b5727e678719764c29f313576568dfd96279195fd63d670d4d",
+      "new_hex": "0630"
+    },
+    {
+      "op": "literal",
+      "offset": 1729862,
+      "length": 2,
+      "base_sha256": "a63bf560302215b5727e678719764c29f313576568dfd96279195fd63d670d4d",
+      "new_hex": "0630"
+    }
+  ]
+}

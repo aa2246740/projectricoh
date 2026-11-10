@@ -1,5 +1,7 @@
 /sources/
-/tools/
+/tools/*
+!/tools/public/
+/tools/public/__pycache__/
 /artifacts/downloads/
 /artifacts/firmware/
 /artifacts/frame-gr2/binary/
@@ -10178,3 +10180,4 @@ node_modules/
 # Third-party Ricoh web/manual snapshots and full local path inventories stay local
 /research/recipes/sources/
 /research/git_sync/*.tsv
+/research/public_rebuild_r1/cache/
