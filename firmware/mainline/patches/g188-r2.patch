@@ -1,0 +1,595 @@
+diff -ruN a/engine/candidate/containers/product/adapter.c b/engine/candidate/containers/product/adapter.c
+--- a/engine/candidate/containers/product/adapter.c	2026-11-12 10:09:43
++++ b/engine/candidate/containers/product/adapter.c	2026-11-12 10:09:43
+@@ -10,9 +10,9 @@
+ #include "src/firmware/engine/core/eng_core.h"
+ #include "src/firmware/card_container_v2/internal.h"
+ #ifndef ENG_HOST
+-const char ig_engine_version[] __attribute__((used,section(".engine_version")))="g185";
++const char ig_engine_version[] __attribute__((used,section(".engine_version")))="g187";
+ #else
+-const char ig_engine_version[]="g185";
++const char ig_engine_version[]="g187";
+ #endif
+ typedef struct { PnGxts tweak; uint8_t bytes[256]; PsStore preference; } SessionWork;
+ enum { UV_L1,UV_CARD,UV_ITEMS,UV_VALUE,UV_DIAG=5,UV_ERR=6 };
+@@ -537,6 +537,35 @@
+     return list_bind(3)==RV_OK?RV_CONSUMED:RV_FAULT;
+ }
+ void xpan_label_once(void);
++/* 1 = H01 load released BO_PENDING. Other values are the check that refused. */
++uint32_t xpan_lane_handoff __attribute__((used));
++/* H51 stores BO_ATTEMPTED before rv_load and runs BOOT_RUN only after that
++ * load returns. An H01 load sets RF_ATTEMPTED and leaves the word at
++ * BO_PENDING, so every later H51 retries rv_load, gets RV_FAULTED, and never
++ * reaches body_event. Releasing exactly BO_PENDING here is the handoff to
++ * maintenance. It does not raise BO_DIRTY and does not run the boot
++ * transaction; the H51 path never matches this word value. */
++static void release_pending_lane_after_load(void)
++{
++    RvRoot *root;RvSession *s;
++    xpan_lane_handoff=2;
++    if(!n.context)return;
++    root=RV_PTR(n.context->root_address);
++    s=RV_PTR(n.context->session_address);
++    if(root->magic!=RV_ROOT_MAGIC||root->version!=RV_ROOT_VERSION){xpan_lane_handoff=3;return;}
++    if(root->state!=RV_VALIDATED){xpan_lane_handoff=4;return;}
++    if(root->flags&(RF_STOP|RF_UNCERTAIN)){xpan_lane_handoff=5;return;}
++    if(!(root->flags&RF_ATTEMPTED)||!root->lease||root->lease!=n.context->nonce||
++       root->lease_inverse!=~root->lease||n.context->session_address!=root->block){xpan_lane_handoff=6;return;}
++    if(s->leases[0].token!=root->lease||s->leases[0].inverse!=~root->lease||
++       s->leases[0].base!=root->block){xpan_lane_handoff=7;return;}
++    if(s->bindings[RV_BOOT_E]!=root->epoch[RV_BOOT_E]||
++       s->bindings[RV_HEAP_E]!=root->epoch[RV_HEAP_E]||
++       s->bindings[RV_MODE_E]!=root->epoch[RV_MODE_E]){xpan_lane_handoff=8;return;}
++    if(root->reserved_lane!=BO_PENDING){xpan_lane_handoff=9;return;}
++    root->reserved_lane=BO_ATTEMPTED;
++    xpan_lane_handoff=1;
++}
+ static int32_t init_core(RvReply *r)
+ {
+     const uint8_t *p;EngPort *const port=&n.spare.io.port;EngStatus status;Gxr2Unit unit;unsigned i;
+@@ -563,8 +592,11 @@
+     if(fx_store_publish())return finish(r,ENG_REJECTED);
+     n.ui.slot=4;n.ui.group=1;n.initialized=1;n.install_status=RV_UNAVAILABLE;
+     r->capabilities=CAP_UI|CAP_S|CAP_W|CAP_BODY|CAP_TICK;
+-    /* Both successful loads return through here, before the first menu or format. */
++    /* Both successful loads return through here, before the first menu or format.
++     * The lane handoff is the H01 case only; an H51 load already stored
++     * BO_ATTEMPTED and still continues into BOOT_RUN after rv_load returns. */
+     xpan_label_once();
++    release_pending_lane_after_load();
+     return finish(r,ENG_OK);
+ }
+ int32_t ig_init(const RvApi *a,uint32_t c,const RvRequest *q,RvReply *r)
+@@ -702,6 +734,8 @@
+     if(q->args[8]==0x101)return boot_run(a,c,q,r);
+     if(q->args[8]==9){
+         uint32_t p=q->args[9];
++        /* Parameter notify can follow the focus-window clear. Repaint first. */
++        if(RV_WORD(0x205d9c00u)==5u)fx_frame_key(0x29);
+         if(p<0x20000000u||p>0x20800000u-144u)return RV_PASS;
+         return body_grain(RV_PTR(p),r);
+     }
+diff -ruN a/engine/candidate/containers/product/boot_adapter.inc.c b/engine/candidate/containers/product/boot_adapter.inc.c
+--- a/engine/candidate/containers/product/boot_adapter.inc.c	2026-11-12 10:09:43
++++ b/engine/candidate/containers/product/boot_adapter.inc.c	2026-11-12 10:09:43
+@@ -89,7 +89,10 @@
+     boot_settings=RV_WORD(0x200c0dac);boot_settings_bytes=RV_WORD(0x200c0db0);
+     eng_read_saved();diag_reason(0,0);
+     if(q->args[9]!=0x200547ec){bits|=BF_SETTINGS;}
+-    if(eng_memory_result()!=1){bits|=BF_RECORD;}
++    /* 1 kept slot, 2 empty tail, 3 retained older catalogue, 4 empty unit slot.
++     * Corrupt and unknown tails stay outside eng_boot_run. */
++    {unsigned mr=eng_memory_result();
++     if(mr!=1u&&mr!=2u&&mr!=3u&&mr!=4u)bits|=BF_RECORD;}
+     if(boot_settings>=0x20000000u&&boot_settings<=0x207ff000u&&boot_settings_bytes==0x1000&&
+        (RV_BYTE(boot_settings+8)||RV_BYTE(boot_settings+0x36e)!=1||
+         RV_BYTE(boot_settings+0x6dd)!=9||RV_BYTE(boot_settings+0x6de)!=9)){
+@@ -102,13 +105,17 @@
+ #endif
+     if(bits)diag_reason(reason,bits);
+     else status=eng_boot_check()?eng_boot_run(RV_PTR(q->args[9]),&detail):ENG_STALE;
+-    /* Boot is later than init_core. Rewrite again if the slots were restored. */
+-    if(status==ENG_OK){
++    /* Boot is later than init_core. The body can put 16:9 back during the
++     * transaction, and a failed transaction used to skip both the rewrite
++     * and the crop. Rewrite whenever the root is ready. The crop and the
++     * status line share fx_frame_key's aspect, view, controller, layer and
++     * alignment gate. A second redraw here used to format XPan on an empty
++     * table and on 3:2. */
++    {
+         RvRoot *root=RV_PTR(n.context->root_address);
+         if(root->state==RV_READY&&!(root->flags&(RF_STOP|RF_UNCERTAIN|RF_BUSY)))xpan_label_once();
+-        fx_frame_key(0x29);
+-    }else{
+-        fx_mask_suspend();
++        if(status==ENG_OK||RV_WORD(0x205d9c00u)==5u)fx_frame_key(0x29);
++        else fx_mask_suspend();
+     }
+     n.active=0;r->detail=detail;r->status=status==ENG_OK?RV_OK:status==ENG_STALE?RV_STALE:RV_IO;
+     return status==ENG_OK?RV_CONSUMED:RV_FAULT;
+diff -ruN a/engine/candidate/containers/product/fx_image.c b/engine/candidate/containers/product/fx_image.c
+--- a/engine/candidate/containers/product/fx_image.c	2026-11-12 10:09:43
++++ b/engine/candidate/containers/product/fx_image.c	2026-11-12 10:09:43
+@@ -232,34 +232,114 @@
+         if(sw_layer1_ok(0)){sw_bars_apply(0);mask_active&=~1u;}
+     }
+ }
++/* Same commit conditions for boot and later standby. The native formatter
++ * is a body-internal jl: it writes r0-r14, including the r7 a C compiler
++ * otherwise keeps across the call. The latch records one commit of the
++ * current standby 16:9 scene and is dropped when the view or aspect changes. */
++static volatile uint8_t xpan_status_done;
++static void status_scene_release(void)
++{
++    if(RV_WORD(0x205d9c00u)!=5u||!aspect_169())xpan_status_done=0u;
++}
++__attribute__((noinline)) void xpan_status_redraw(void)
++{
++#ifndef ENG_HOST
++    static uint8_t desc[64];
++    static const uint8_t name[4]={'X','P','a','n'};
++    const volatile uint8_t *finder;
++    uint32_t i,desc_addr;
++    status_scene_release();
++    if(xpan_status_done)return;
++    if(RV_WORD(0x205d9c00u)!=5u||RV_WORD(0x20229350u)!=1u||RV_WORD(0x205d9bf8u))return;
++    if(!aspect_169()||!sw_layer1_ok(1)||!session_ok())return;
++    finder=RV_PTR(0x20223150u);
++    for(i=0;i<4u;++i)if(finder[i]!=name[i])return;
++    for(i=0;i<64u;++i)desc[i]=0u;
++    desc[34]=1u;desc[36]=1u;
++    desc_addr=(uint32_t)desc;
++    /* Body jl writes the argument registers and the caller-saved set.
++     * r12 stays the PIC register: save and restore it inside the asm,
++     * because a clobber of r12 is rejected. The "+r" outputs stop the
++     * compiler from reusing r0/r4/r5/r6 for the latch store. */
++    {
++        register uint32_t fn __asm__("r0")=0x20201e1cu;
++        register uint32_t a4 __asm__("r4")=0u;
++        register uint32_t a5 __asm__("r5")=desc_addr;
++        register uint32_t a6 __asm__("r6")=0u;
++        __asm__ volatile(
++            "push r12\n\t"
++            "jl r0\n\t"
++            "pop r12\n\t"
++            : "+r"(fn), "+r"(a4), "+r"(a5), "+r"(a6)
++            :
++            : "r1","r2","r3","r7","r8","r9","r10","r11","r13","r14","memory");
++    }
++    xpan_status_done=1u;
++#endif
++}
++static void hw_window_on(void)
++{
++    uint32_t i;
++    if(!subwin_dirty){
++        for(i=0;i<5u;++i)saved_subwin[i]=RV_WORD(0x2022936cu+4u*i);
++        subwin_dirty=1;
++    }
++    /* subwindow[0]=0 is the crop. 0x201BEE9C turns it back to 1. */
++    RV_WORD(0x2022936cu)=0u;RV_WORD(0x20229370u)=1u;RV_WORD(0x20229374u)=0u;
++    RV_WORD(0x20229378u)=122u;RV_WORD(0x2022937cu)=358u;
++}
++/* Half-press sets the activity word, then the key handler calls
++ * 0x201D9090 -> 0x201BEE9C and the crop disappears. The H51 trampoline
++ * at 0x202b1310 runs after that handler, still with activity set.
++ * Reapply on that call. The software layer table is a separate gate:
++ * the first standby after a new DAT can have the controller ready
++ * before the layer words match, and the crop does not need those words. */
+ void fx_frame_key(uint32_t code)
+ {
+-    uint32_t i,on;
++    uint32_t on;
++    int quiet,layer_ok,plane_ok;
+     (void)code;
+-    if(RV_WORD(0x205d9c00u)!=5u){fx_mask_suspend();return;}
+-    if(RV_WORD(0x205d9bf8u))return;
+-    if(!session_ok()||!sw_layer1_ok(1)){fx_mask_hw_restore();++fx_image.draw_rejected;return;}
++    if(RV_WORD(0x205d9c00u)!=5u){xpan_status_redraw();fx_mask_suspend();return;}
++    if(!session_ok()){fx_mask_hw_restore();++fx_image.draw_rejected;return;}
+     on=(word(fx_store.header+28)&2u)&&aspect_169();
+-    if(!on&&!mask_active&&!subwin_dirty&&!clut_dirty_mask&&!scan_dirty)return;
+-    sw_bars_apply((int)on);
++    if(!on&&!mask_active&&!subwin_dirty&&!clut_dirty_mask&&!scan_dirty){xpan_status_redraw();return;}
++    /* Activity during standby is half-press. The legacy cases require the
++     * software plane to stay unchanged while that word is set. The hardware
++     * crop is still reapplied, because 0x201BEE9C has just turned it off. */
++    quiet=!RV_WORD(0x205d9bf8u);
++    layer_ok=sw_layer1_ok(1);
++    /* Installed table, one pointer off: the legacy check rejects the draw.
++     * An empty table on the first standby is not that case, and the crop
++     * below does not need the three layer words. */
++    if(!layer_ok&&RV_WORD(0x205a1594u)==1u&&(RV_BYTE(0x205a280eu)&1u)&&
++       RV_WORD(0x205a19a4u)==0x20744800u&&RV_WORD(0x200c0dc8u)==0x20744800u){
++        fx_mask_hw_restore();
++        ++fx_image.draw_rejected;
++        return;
++    }
++    if(layer_ok&&quiet)sw_bars_apply((int)on);
+     if(on){
+-        mask_active|=1u;
+-        if(is_xpan_unit()&&RV_WORD(0x20229350u)==1u){
+-            if(clut_apply_on()){
+-                if(!subwin_dirty){
+-                    for(i=0;i<5u;++i)saved_subwin[i]=RV_WORD(0x2022936cu+4u*i);
+-                    subwin_dirty=1;
+-                }
+-                RV_WORD(0x2022936cu)=0u;RV_WORD(0x20229370u)=1u;RV_WORD(0x20229374u)=0u;
+-                RV_WORD(0x20229378u)=122u;RV_WORD(0x2022937cu)=358u;
++        if(layer_ok)mask_active|=1u;
++        plane_ok=RV_WORD(0x200c0dc8u)==0x20744800u&&RV_WORD(0x200c0dccu)==0x177800u;
++        if(is_xpan_unit()){
++            /* First standby after a new DAT reaches BOOT_RUN while
++             * 0x20229350 is still 0 and the layer table is empty. The crop
++             * words are ordinary RAM. CLUT MMIO stays behind the ready bit. */
++            if(RV_WORD(0x20229350u)==1u&&clut_apply_on()){
++                hw_window_on();
+                 hw_bars_scan_on();
+                 mask_active|=2u;
++            }else if(plane_ok){
++                hw_window_on();
++                mask_active|=2u;
+             }
+         }else{
+             fx_mask_hw_restore();
+         }
+         ++fx_image.drawn;
++        if(quiet&&layer_ok)xpan_status_redraw();
+     }else{
++        xpan_status_redraw();
+         fx_mask_hw_restore();
+         mask_active&=~1u;
+     }
+diff -ruN a/engine/candidate/containers/product/fx_image.h b/engine/candidate/containers/product/fx_image.h
+--- a/engine/candidate/containers/product/fx_image.h	2026-11-12 10:09:43
++++ b/engine/candidate/containers/product/fx_image.h	2026-11-12 10:09:43
+@@ -7,6 +7,7 @@
+ } FxImage;
+ extern FxImage fx_image;
+ void fx_frame_key(uint32_t);
++void xpan_status_redraw(void);
+ void fx_mask_hw_restore(void);
+ void fx_mask_suspend(void);
+ int32_t fx_image_entry(const RvRequest *,RvReply *);
+diff -ruN a/engine/candidate/containers/product/src/firmware/engine/core/eng_boot.inc.c b/engine/candidate/containers/product/src/firmware/engine/core/eng_boot.inc.c
+--- a/engine/candidate/containers/product/src/firmware/engine/core/eng_boot.inc.c	2026-11-12 10:09:43
++++ b/engine/candidate/containers/product/src/firmware/engine/core/eng_boot.inc.c	2026-11-12 10:09:43
+@@ -66,6 +66,35 @@
+     int mismatch=0;
+     return live_check(&mismatch,0)==ENG_OK&&!mismatch&&boot_plan_equal(p)&&fresh();
+ }
++/* 1: the sentence stands or the user text was left alone.
++ * 2: colour was not changed, and the old 47 bytes were written back and read.
++ * 0: stop. A copyright match after colour already changed is not a 2. */
++static int boot_put_back(volatile uint32_t *word,const uint8_t saved[47],int *wrote,unsigned colour_changed)
++{
++    if(!*wrote)return 0;
++    if((*word&4u)&&io.info.token&&fresh()&&eng_boot_check()&&copyright_store(saved)==RV_OK&&copyright_matches(saved)){
++        *wrote=0;
++        /* The saved rows were replaced when the new colour was accepted.
++         * Putting the copyright back does not put that colour back. */
++        return colour_changed?0:2;
++    }
++    *wrote=0;return 0;
++}
++static int boot_copyright_settle(volatile uint32_t *word,const EngRecipeRef *ref,const UvLevels *levels,uint8_t saved[47],int *wrote,unsigned colour_changed)
++{
++    uint8_t expect[47];
++    *word|=4u;__asm__ __volatile__("":::"memory");
++    if(!copyright_publish(ref,levels,saved,wrote))return boot_put_back(word,saved,wrote,colour_changed);
++    if(!*wrote)return (fresh()&&eng_boot_check())?1:0;
++    copyright_sentence(ref,levels,expect);
++    if(copyright_matches(expect)&&fresh()&&eng_boot_check())return 1;
++    return boot_put_back(word,saved,wrote,colour_changed);
++}
++static int boot_release_committed(volatile uint32_t *word,unsigned *acquired)
++{
++    if(!boot_release()){g->uncertain=1;g->bound=0;*acquired=0;return 0;}
++    *acquired=0;*word&=~4u;return 1;
++}
+ static void boot_commit(const EngRecipeRef *ref,const UvLevels *t,unsigned user)
+ {
+     g->current=g->confirmed=*ref;g->tweak=g->confirmed_tweak=*t;
+@@ -78,9 +107,12 @@
+ EngStatus __attribute__((noinline)) eng_boot_run(volatile uint32_t *word,unsigned *detail)
+ {
+     EngRecipeRef ref={0};UvLevels levels;RvSettingsPlan restore;uint8_t record[40],wb[2],csaved[47];
+-    unsigned user=0,i,acquired=0;int mismatch=0,cwrote=0;EngStatus status=ENG_OK;
++    unsigned user=0,i,acquired=0,finished=0;int mismatch=0,cwrote=0;EngStatus status=ENG_OK;
+     *detail=2;diag_engine(1);eng_read_saved();
+     if(!g->ready||!g->bound||g->busy||g->uncertain||!eng_boot_check())return ENG_STALE;
++    /* This power cycle already committed. A repeat entry must not rewrite
++     * settings or colour; a new cycle starts with boot_committed clear. */
++    if(g->boot_committed){*detail=1;return ENG_OK;}
+     g->busy=g->boot_active=1;w_count=0;t_seen=-1;
+     acquired=1;
+     if(!boot_acquire()){diag_reason(20,BF_NATIVE);goto clean;}
+@@ -88,7 +120,8 @@
+     copy(record,io.request.record.record,40);
+     if(memory_op(4,0,0,0)!=RV_OK||!equal(record,io.request.record.record,40)){diag_reason(30,BF_EPOCH);goto clean;}
+     if(!boot_release()){status=ENG_STALE;acquired=0;goto clean;}acquired=0;
+-    /* An unknown or older tag has no saved slot. Apply 04 instead of failing the boot. */
++    /* Empty slot or a retained older catalogue has no saved recipe. Apply 04.
++     * Corrupt and unknown tails are stopped by the outer record gate. */
+     if(g->saved.ref.slot){ref=g->saved.ref;levels=g->saved.levels;user=g->saved.user;}
+     else{
+         clear(&ref,sizeof(ref));ref.unit=g->data.unit;ref.slot=4;user=0;
+@@ -110,15 +143,14 @@
+      * checks the stock lock before the first possible W. */
+     if(svc(RV_SETTINGS,6,0,0,&io.request.plan,sizeof(io.request.plan),io.request.plan.count,&io.reply)!=RV_OK){diag_reason(23,BF_LOCK);goto clean;}
+     if(equal(g->staging,g->live,552)&&boot_plan_equal(&io.request.plan)){
+-        /* The settings service admits a BOOT copyright write only while the
+-         * protection flag is set. Raise it for that call, then drop it
+-         * before release so a release failure keeps the old clean-up path.
+-         * Owner, epoch, token and the stock lock checks stay in the service. */
+-        *word|=4u;__asm__ __volatile__("":::"memory");
+-        copyright_publish(&ref,&levels,csaved,&cwrote);
+-        *word&=~4u;
+-        if(!boot_release()){status=ENG_STALE;acquired=0;goto clean;}acquired=0;
+-        boot_commit(&ref,&levels,user);*detail=1;goto clean;
++        /* Colour and settings still match the captured state. Protection
++         * stays up through the store, the preimage restore, and release.
++         * It drops only after release returns success. */
++        {int settled=boot_copyright_settle(word,&ref,&levels,csaved,&cwrote,0);
++         if(!settled){status=ENG_UNCERTAIN;g->uncertain=1;g->bound=0;goto clean;}
++         if(settled==2){if(!boot_release_committed(word,&acquired)){status=ENG_UNCERTAIN;goto clean;}*detail=2;status=ENG_OK;finished=1;goto clean;}
++         if(!boot_release_committed(word,&acquired)){status=ENG_UNCERTAIN;goto clean;}}
++        finished=1;boot_commit(&ref,&levels,user);*detail=1;goto clean;
+     }
+     if(!eng_boot_check()){status=ENG_STALE;goto clean;}
+     *word|=4u;__asm__ __volatile__("":::"memory");
+@@ -127,11 +159,19 @@
+        svc(RV_PREVIEW,1,0,0,0,0,0,&io.reply)==RV_OK){
+         copy(g->live,g->staging,552);
+         if(boot_verify(&io.request.plan)){
+-            copyright_publish(&ref,&levels,csaved,&cwrote);
+-            if(boot_release()){acquired=0;boot_commit(&ref,&levels,user);*word&=~4u;*detail=1;status=ENG_OK;goto clean;}
++            /* Colour and settings now match the new plan. A torn copyright
++             * can be put back, but that does not put the colour back, so it
++             * is not a finished restore of the old state. */
++            {int settled=boot_copyright_settle(word,&ref,&levels,csaved,&cwrote,1);
++             if(!settled){status=ENG_UNCERTAIN;g->uncertain=1;g->bound=0;goto clean;}
++             if(settled==2){if(!boot_release_committed(word,&acquired)){status=ENG_UNCERTAIN;goto clean;}*detail=3;status=ENG_OK;finished=1;boot_commit(&ref,&levels,0);goto clean;}
++             if(!boot_release_committed(word,&acquired)){status=ENG_UNCERTAIN;goto clean;}}
++            finished=1;boot_commit(&ref,&levels,user);*detail=1;status=ENG_OK;goto clean;
+         }
+     }
+-    /* CANCEL has one compensation pass, never the menu retry loops. */
++    /* CANCEL has one compensation pass, and only while release has not run.
++     * A release that already returned is not a token for another store. */
++    if(!acquired){status=ENG_UNCERTAIN;g->uncertain=1;goto clean;}
+     status=ENG_UNCERTAIN;diag_reason(31,BF_COLOUR);diag_engine(3);
+     if(!eng_boot_check())goto clean;
+     copy(g->staging,g->stock,552);
+@@ -143,13 +183,26 @@
+     if(!boot_verify(&io.request.plan)||!boot_s_valid())goto clean;
+     clear(&ref,sizeof(ref));ref.unit=g->data.unit;ref.slot=4;
+     eng_identity(eng_record(&g->data,4),ref.identity);clear(&levels,sizeof(levels));levels.v[0]=100;
+-    copyright_publish(&ref,&levels,csaved,&cwrote);
+-    if(!boot_release())goto clean;
+-    acquired=0;boot_commit(&ref,&levels,0);*word&=~4u;*detail=3;status=ENG_OK;
++    {int settled=boot_copyright_settle(word,&ref,&levels,csaved,&cwrote,0);
++     if(!settled){status=ENG_UNCERTAIN;g->uncertain=1;g->bound=0;goto clean;}
++     /* Colour, settings and copyright were each put back and read. The
++      * active recipe stays uncommitted: this pass cancelled the change. */
++     if(settled==2){if(!boot_release_committed(word,&acquired)){status=ENG_UNCERTAIN;goto clean;}*detail=2;status=ENG_OK;finished=1;goto clean;}
++     if(!boot_release_committed(word,&acquired)){status=ENG_UNCERTAIN;goto clean;}}
++    finished=1;boot_commit(&ref,&levels,0);*detail=3;status=ENG_OK;
+  clean:
+-    if(cwrote&&status!=ENG_OK){(void)copyright_store(csaved);cwrote=0;}
+-    if(acquired&&!boot_release())status=ENG_STALE;
++    /* The preimage store is legal only before release, with the token and
++     * the protection bit still valid. It uses that same token and does not
++     * acquire another. After release, leave the bytes alone. A matching
++     * copyright read still leaves colour and settings where they are. */
++    if(cwrote>0&&status!=ENG_OK&&acquired&&(*word&4u)&&io.info.token&&fresh()&&eng_boot_check()&&
++       copyright_store(csaved)==RV_OK&&copyright_matches(csaved))cwrote=0;
++    else if(cwrote>0&&status!=ENG_OK){cwrote=0;g->uncertain=1;g->bound=0;status=ENG_UNCERTAIN;}
++    if(acquired&&!boot_release()){g->uncertain=1;g->bound=0;status=ENG_UNCERTAIN;}
++    acquired=0;cwrote=0;
+     if(*word&4u){g->uncertain=1;status=ENG_UNCERTAIN;}
++    /* An unfinished boot must not be retried by a later call as if it never started. */
++    if(!finished){g->uncertain=1;if(status==ENG_OK)status=ENG_UNCERTAIN;}
+     if(status!=ENG_OK)diag_reason(status==ENG_STALE?30:31,status==ENG_STALE?BF_EPOCH:BF_COLOUR);
+     g->busy=g->boot_active=0;return status;
+ }
+diff -ruN a/engine/candidate/containers/product/src/firmware/engine/core/eng_core.c b/engine/candidate/containers/product/src/firmware/engine/core/eng_core.c
+--- a/engine/candidate/containers/product/src/firmware/engine/core/eng_core.c	2026-11-12 10:29:31
++++ b/engine/candidate/containers/product/src/firmware/engine/core/eng_core.c	2026-11-12 10:29:31
+@@ -352,12 +352,22 @@
+ }
+ static void mem_seal(uint8_t *p)
+ {uint32_t crc=eng_crc(p,36);unsigned i;for(i=0;i<4;++i)p[36+i]=(uint8_t)(crc>>(24-8*i));}
+-/* 5 not ours, 3 another catalogue or version, 1 this catalogue's wide record. */
++/* 5 not ours, unknown, or an incompatible version.
++ * 3 is only a retained older catalogue. 1 is this catalogue's wide record. */
++static int migration_tag(const uint8_t *tag)
++{
++    static const uint8_t known[][5]={
++        ENG_MIGRATION_TAG_ROWS
++    };
++    unsigned i;
++    for(i=0;i<sizeof known/sizeof known[0];++i)if(equal(tag,known[i],5))return 1;
++    return 0;
++}
+ static unsigned __attribute__((noinline)) mem_kind(const uint8_t *p)
+ {
+     if(!memory_owned(p,eng_crc(p,36)))return 5;
+-    if(p[4]!=MEMORY_VERSION||!equal(p+MEM_TAG,g->data.image+20,5))return 3;
+-    if(p[5]>157||(p[5]==157&&p[6]))return 3;
++    if(!equal(p+MEM_TAG,g->data.image+20,5))return migration_tag(p+MEM_TAG)?3u:5u;
++    if(p[4]!=MEMORY_VERSION||p[5]>157||(p[5]==157&&p[6]))return 5;
+     return 1;
+ }
+ static unsigned __attribute__((noinline)) mem_load(uint8_t *p,uint16_t *f)
+@@ -503,17 +513,48 @@
+     out[21]=' ';
+     copyright_tweaks(r,t,out+22);
+ }
+-static void copyright_publish(const EngRecipeRef *r,const UvLevels *t,uint8_t saved[47],int *wrote)
++/* Read the copyright member only. A matching read is not a colour, settings,
++ * white-balance or whole-transaction proof. */
++static int copyright_matches(const uint8_t expect[47])
++{
++    const uint8_t *settings=eng_wire_pointer(io.info.address);
++    return settings&&io.info.length>=ENG_COPYRIGHT_AT+47u&&equal(settings+ENG_COPYRIGHT_AT,expect,47);
++}
++/* 1: stored and the 47 bytes match, or legitimately skipped. 0: a required
++ * store did not happen, or the service returned success while the bytes differ.
++ * The first call captures the preimage. A later call in the same transaction
++ * must not replace that preimage with text this transaction already wrote. */
++static int copyright_publish(const EngRecipeRef *r,const UvLevels *t,uint8_t saved[47],int *wrote)
+ {
+     const uint8_t *settings; uint8_t text[47]; unsigned i;
+-    *wrote=0;
+     settings=eng_wire_pointer(io.info.address);
+-    if(!settings||io.info.length<ENG_COPYRIGHT_AT+47u)return;
+-    for(i=0;i<47;++i)saved[i]=settings[ENG_COPYRIGHT_AT+i];
+-    if(saved[0]&&!(saved[0]=='G'&&saved[1]=='X'&&saved[2]=='R'&&saved[3]=='1'))return;
++    if(!io.info.token||!settings||io.info.length<ENG_COPYRIGHT_AT+47u)return 0;
++    if(!*wrote){for(i=0;i<47;++i)saved[i]=settings[ENG_COPYRIGHT_AT+i];}
++    if(saved[0]&&!(saved[0]=='G'&&saved[1]=='X'&&saved[2]=='R'&&saved[3]=='1'))return 1;
+     copyright_sentence(r,t,text);
+-    if(copyright_store(text)==RV_OK)*wrote=1;
++    if(copyright_store(text)!=RV_OK)return 0;
++    /* The service status is not the 47 bytes. A later check can still fail. */
++    *wrote=1;
++    if(!copyright_matches(text))return 0;
++    return 1;
+ }
++/* Undo only while this call still holds the token. 1 means the 47 preimage
++ * bytes were read back, or there was nothing to undo. The service status
++ * alone does not count. */
++static int copyright_undo(const uint8_t saved[47],int *wrote)
++{
++    if(!*wrote)return 1;
++    if(!io.info.token||!fresh()||!eng_settings_owned())return 0;
++    if(copyright_store(saved)!=RV_OK||!copyright_matches(saved))return 0;
++    *wrote=0;
++    return 1;
++}
++static void release_lost(EngStatus *status)
++{
++    g->uncertain=1;
++    g->bound=0;
++    *status=ENG_UNCERTAIN;
++}
+ /* choice: a user choice (select, Default, preview). Boundary re-applies of
+  * the current state and recoveries are not choices. */
+ static EngStatus apply_impl(const EngRecipeRef *r,const UvLevels *t,unsigned recovery,unsigned confirm,unsigned choice)
+@@ -597,14 +638,74 @@
+         }
+     }
+  settings_done:
+-    /* A release failure still prevents publication. */
+-    if(status==ENG_OK&&!g->settings_pending&&fresh()&&eng_settings_owned())
+-        copyright_publish(r,t,saved_copy,&copyright_wrote);
+-    acquired=0;
+-    status=mapped(settings_release());
+-    if(status!=ENG_OK || !fresh()) {
+-        if(copyright_wrote){(void)copyright_store(saved_copy);copyright_wrote=0;}
+-        status=failure(); goto done; }
++    /* Publish while the token is still held. A required store that fails
++     * is uncertain: do not report success and do not start another acquire. */
++    if(status==ENG_OK&&!g->settings_pending&&fresh()&&eng_settings_owned()){
++        if(!copyright_publish(r,t,saved_copy,&copyright_wrote)){
++            /* The store may already have landed. Put the preimage back on
++             * this token and read all 47 bytes before releasing it. Colour
++             * and settings written above are a different member: matching
++             * copyright does not finish the transaction or take a new token. */
++            if(copyright_wrote)(void)copyright_undo(saved_copy,&copyright_wrote);
++            copyright_wrote=0;
++            g->uncertain=1;
++            status=ENG_UNCERTAIN;
++            if(acquired){
++                if(settings_release()!=RV_OK)status=ENG_UNCERTAIN;
++                acquired=0;
++            }
++            g->bound=0;
++            goto finish;
++        }
++    }
++    if(status==ENG_OK&&copyright_wrote&&(!fresh()||!eng_settings_owned())){
++        if(!copyright_undo(saved_copy,&copyright_wrote))copyright_wrote=0;
++        release_lost(&status);
++    }
++    if(acquired){
++        int32_t released=settings_release();
++        int committed_ok=status==ENG_OK;
++        int published=copyright_wrote;
++        acquired=0;copyright_wrote=0;
++        if(released!=RV_OK){
++            /* One probe under the token this call already holds. Success
++             * means release never took that token. The probe is a store, not
++             * a permission check, and it must not acquire another token.
++             * A byte match is still only the copyright member: colour and
++             * settings stay as the failed transaction left them. Finish on
++             * this same token; do not fall into done, which would acquire
++             * again while this ownership is still alive. */
++            if(published&&io.info.token&&fresh()&&eng_settings_owned()&&
++               copyright_store(saved_copy)==RV_OK&&copyright_matches(saved_copy)){
++                int32_t closed;
++                /* Copyright is back. Colour and settings were written by
++                 * this attempt and were not part of the probe, so the
++                 * transaction stays uncertain and the guard stays up.
++                 * Release only this token. */
++                g->uncertain=1;
++                status=ENG_UNCERTAIN;
++                closed=settings_release();
++                acquired=0;copyright_wrote=0;
++                /* Drop the epoch binding after this token is closed so the
++                 * caller's compensation cannot apply for a second token. */
++                g->bound=0;
++                if(closed!=RV_OK)status=ENG_UNCERTAIN;
++                goto finish;
++            }
++            release_lost(&status);goto done;
++        }
++        if(!fresh()){
++            /* Release returned success, then the epoch check failed.
++             * Colour and a successful copyright store already committed.
++             * Record that recipe and stop. Do not store on the dropped token. */
++            if(committed_ok){
++                g->current=*r;g->tweak=*t;g->committed=1;
++                g->list.applied=r->slot;g->list.cursor=r->slot;
++            }
++            release_lost(&status);goto done;
++        }
++        if(status!=ENG_OK){status=failure();goto done;}
++    }else if(status!=ENG_OK){status=failure();goto done;}
+     /* A full write read T back as its target: the T warning is resolved. */
+     copy(g->live,g->staging,552);if(recovery|!g->baseline)g->t_warn=g->t_warn_slot=0;g->baseline=g->live_verified=1;
+     /* A user choice records its state. Any other state change (baseline
+@@ -628,11 +729,17 @@
+     else if(recovery){g->s_refused=1;status=failure();}
+     else{g->settings_pending=1;goto settings_done;}
+  done:
+-    if(copyright_wrote && status!=ENG_OK){(void)copyright_store(saved_copy);copyright_wrote=0;}
+-    if(acquired) {
+-        int32_t released=settings_release();
+-        if(released!=RV_OK && status==ENG_OK) status=mapped(released);
++    /* Early failures still hold the token. Undo first, then release once.
++     * A non-OK release is uncertain on this ABI and must not store again. */
++    if(copyright_wrote&&status!=ENG_OK){
++        if(!copyright_undo(saved_copy,&copyright_wrote)){copyright_wrote=0;release_lost(&status);}
++    }
++    if(acquired){
++        int32_t released=settings_release();
++        acquired=0;copyright_wrote=0;
++        if(released!=RV_OK)release_lost(&status);
+     }
++ finish:
+     if(status!=ENG_OK && g->committed) g->list.cursor=g->current.slot;
+     expire_previous();g->busy=0; return status;
+ }
+@@ -714,7 +821,7 @@
+     for(i=0;i<8;i++) { min[i]=(int8_t)m[3*i]; max[i]=(int8_t)m[3*i+1]; def[i]=(int8_t)m[3*i+2]; }
+     return ENG_OK;
+ }
+-int eng_uncertain(void) { return g->uncertain!=0; }
++int __attribute__((noinline,used)) eng_uncertain(void) { return g->uncertain!=0; }
+ int eng_write_started(void) { return g->write_started!=0; }
+ int eng_snapshot_failed(void) { return g->snapshot_fault!=0; }
+ void eng_require_recheck(void) { expire_previous();g->recheck=1; }

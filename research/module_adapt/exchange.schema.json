@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ricoh-module-exchange/1",
+  "$ref": "#/$defs/patch",
+  "$defs": {
+    "rgbRaw": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number", "minimum": 0, "maximum": 1}},
+    "rgbJpeg": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number", "minimum": 0, "maximum": 255}},
+    "sd3": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number", "minimum": 0}},
+    "patch": {
+      "type": "object",
+      "required": ["frame", "page", "patch_id", "class", "raw_rgb", "jpeg_rgb", "valid", "spatial_sd"],
+      "properties": {
+        "frame": {"type": "string", "minLength": 1},
+        "page": {"type": ["string", "integer"]},
+        "patch_id": {"type": ["string", "integer"]},
+        "class": {"type": "string", "minLength": 1},
+        "valid": {"type": "boolean"}
+      },
+      "if": {"properties": {"valid": {"const": true}}},
+      "then": {"properties": {
+        "raw_rgb": {"$ref": "#/$defs/rgbRaw"},
+        "jpeg_rgb": {"$ref": "#/$defs/rgbJpeg"},
+        "spatial_sd": {"oneOf": [
+          {"type": "number", "minimum": 0},
+          {"$ref": "#/$defs/sd3"},
+          {"type": "object", "required": ["raw_rgb", "jpeg_rgb"], "properties": {"raw_rgb": {"$ref": "#/$defs/sd3"}, "jpeg_rgb": {"$ref": "#/$defs/sd3"}}}
+        ]}
+      }}
+    },
+    "frame": {
+      "type": "object",
+      "required": ["module", "iso", "shutter_s", "aperture_f", "white_balance", "selector_bytes"],
+      "properties": {
+        "module": {"enum": ["50mm", "28mm", "mount"]},
+        "iso": {"type": "integer", "minimum": 1},
+        "shutter_s": {"type": "number", "exclusiveMinimum": 0},
+        "aperture_f": {"type": "number", "exclusiveMinimum": 0},
+        "source_kind": {"enum": ["camera", "synthetic"]},
+        "white_balance": {"type": "object", "required": ["mode", "gains"], "properties": {
+          "mode": {"type": "string"}, "gains": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number", "exclusiveMinimum": 0}}
+        }},
+        "selector_bytes": {"type": "object", "required": ["recipe_slot", "image_setting", "raw13", "type26_control"], "properties": {
+          "recipe_slot": {"enum": ["01", "02", "03", "04", "05", "06", "07", "08"]},
+          "image_setting": {"type": "integer", "minimum": 0, "maximum": 255},
+          "type26_control": {"type": "integer", "minimum": 0, "maximum": 65535},
+          "raw13": {"type": "array", "minItems": 13, "maxItems": 13, "items": {"type": "integer", "minimum": 0, "maximum": 255}}
+        }}
+      }
+    },
+    "frames": {"type": "object", "required": ["schema", "frames"], "properties": {
+      "schema": {"const": "ricoh-module-frames/1"}, "frames": {"type": "object", "additionalProperties": {"$ref": "#/$defs/frame"}}
+    }}
+  }
+}
