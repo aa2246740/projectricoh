@@ -95,5 +95,10 @@ void hf9_disarm(void);
 #ifdef HF7_H43
 int hf7_on_h43(const void *ctx, uint32_t k, uint32_t sp, uint32_t r0);
 #endif
+#ifdef HF_ROW_FIRST
+int hf_unit_ok(void);
+void hf1_row_text(char out[16]);
+#else
 void hf1_row_text(char out[14]);
+#endif
 #endif

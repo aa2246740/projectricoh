@@ -113,6 +113,20 @@ void __attribute__((noinline)) diag_text(unsigned row,char out[14])
     static const char lines[8][14]={"G175B00R00","F00000000A--","M00U00Y00P00","A00000000H00",
         "V00000000T0R0","N00000000L00","S000000000000","I000000Q0D0G0"};
     const uint8_t *bytes=(const uint8_t *)d;unsigned i;
+#if defined(ONE_STEP_ZOOM) && !defined(OZ_NO_DIAG)
+    /* Z rr:nn fsc gg = rewrites, 0x5D seen in view 5, then at the last 0x5D
+     * the low digits of 0x2037F883, the word, capability 43, gate bits. */
+    if(row==8){const uint8_t *o=oz_diag;pn_copy(out,"Z00:00 000 00",14);
+        hex(out+1,o[0],2);hex(out+4,o[1],2);hex(out+7,o[2],1);hex(out+8,o[3],1);hex(out+9,o[4],1);hex(out+11,o[5],2);return;}
+#endif
+#ifdef HF_ALL_UNITS
+    /* U tt e RR (5 hex digits, no spaces): see hfu_diag (hf1.c) */
+#ifdef OZ_NO_DIAG
+    if(row==8){out[0]='U';out[6]=0;hex(out+1,hfu_diag(),5);return;} /* 256: Z dropped, U is row 8 */
+#else
+    if(row==9){out[0]='U';out[6]=0;hex(out+1,hfu_diag(),5);return;}
+#endif
+#endif
     pn_copy(out,lines[row],14);
     for(i=0;i<sizeof(fields)/sizeof(fields[0]);++i){const DiagField *f=&fields[i];
         if(f->row==row){

@@ -39,6 +39,17 @@ HF7_H43, HF8_UNDO15 (half-frame bars off from the shutter word 15) and L2N_R2V2
 --profile merged-r1d-fold-a-cand writes generation 245 (test): 244 plus
 XPAN_ZOOM_R2 (zoom plan B + Z7, three `nop || mul` words re-encoded as `mul || nop`)
 and HF8_DIAG (rows Z z A a h k x y H R P Q X; S, Z, U and hf5_scan_z dropped).
+--profile merged-r1-fold-a-hf10-oz writes generation 253: 250 plus ONE_STEP_ZOOM
+(long OK goes straight to the full-screen magnifier; one B00 Status row).
+--profile merged-r1-fold-a-hf10-oz-row writes generation 254: 253 plus HF_ROW_FIRST
+(Half Frame toggle at row 0 on supported units, hidden on unsupported units,
+3:2 hint when non-3:2, return to original recipe after toggle).
+--profile merged-r1-fold-a-hf10-oz-hfu writes generation 255: 253 plus HF_ALL_UNITS
+(half-frame on the 50mm and MOUNT A12 units too; one more B00 Status row, U).
+--profile merged-r1-fold-a-hf10-oz-256 writes generation 256: 254 and 255 together
+(HF_ROW_FIRST + HF_ALL_UNITS: the row is shown on all three A12 units, running stays the 255
+unit gate, row text only on/off and 3:2, 254 review P2-1), plus OZ_NO_DIAG (B00 Z row dropped,
+U is row 8) and HFU_FOLD (hfu_bits loads its constants once).
 
 The compile still defines G175_BOOT and G175_DIAG_SILENT. Both recorded
 builds used those macros; the generation field in the DAT header is separate.
@@ -337,6 +348,67 @@ PROFILES = {
         "resident_build_id": "18e530aa29a667824828e1b21d1f10b15c9b6eeee4f500d5607436583789457d",
         "resident_abi_id": "9bad13d535a686a911f246acbac36f34",
     },
+    "merged-r1-fold-a-hf10-oz": {
+        "generation": 253,
+        "seed_prefix": "research/merged_line_r1/local/engine-nodiag",
+        "defines": [
+            "-DG188_R3=1", "-DUSER_SLOTS_R4=1", "-DXPAN_D123_R1=1", "-DXPAN_D1_R2=1",
+            "-DHF1=1", "-DHF3=1", "-DHF4=1", "-DHF5=1", "-DHF5_H42=1", "-DHF6=1",
+            "-DMERGED_R1=1", "-DL2N_FOLD_A=1", "-DHF7_H43=1", "-DHF8_UNDO15=1",
+            "-DL2N_R2V2=1", "-DXPAN_ZOOM_R2=1", "-DHF9_REVIEW=1", "-DHF9_CHECKED=1",
+            "-DHF10_SEAM25=1", "-DHF10_PORTRAIT=1", "-DHF10_REVIEW=1",
+            "-DONE_STEP_ZOOM=1",
+        ],
+        "xdata": True,
+        "resident_build_id": "18e530aa29a667824828e1b21d1f10b15c9b6eeee4f500d5607436583789457d",
+        "resident_abi_id": "9bad13d535a686a911f246acbac36f34",
+    },
+    "merged-r1-fold-a-hf10-oz-row": {
+        "generation": 254,
+        "seed_prefix": "research/merged_line_r1/local/engine-nodiag",
+        "defines": [
+            "-DG188_R3=1", "-DUSER_SLOTS_R4=1", "-DXPAN_D123_R1=1", "-DXPAN_D1_R2=1",
+            "-DHF1=1", "-DHF3=1", "-DHF4=1", "-DHF5=1", "-DHF5_H42=1", "-DHF6=1",
+            "-DMERGED_R1=1", "-DL2N_FOLD_A=1", "-DHF7_H43=1", "-DHF8_UNDO15=1",
+            "-DL2N_R2V2=1", "-DXPAN_ZOOM_R2=1", "-DHF9_REVIEW=1", "-DHF9_CHECKED=1",
+            "-DHF10_SEAM25=1", "-DHF10_PORTRAIT=1", "-DHF10_REVIEW=1",
+            "-DONE_STEP_ZOOM=1", "-DHF_ROW_FIRST=1",
+        ],
+        "xdata": True,
+        "resident_build_id": "18e530aa29a667824828e1b21d1f10b15c9b6eeee4f500d5607436583789457d",
+        "resident_abi_id": "9bad13d535a686a911f246acbac36f34",
+    },
+    "merged-r1-fold-a-hf10-oz-hfu": {
+        "generation": 255,
+        "seed_prefix": "research/merged_line_r1/local/engine-nodiag",
+        "defines": [
+            "-DG188_R3=1", "-DUSER_SLOTS_R4=1", "-DXPAN_D123_R1=1", "-DXPAN_D1_R2=1",
+            "-DHF1=1", "-DHF3=1", "-DHF4=1", "-DHF5=1", "-DHF5_H42=1", "-DHF6=1",
+            "-DMERGED_R1=1", "-DL2N_FOLD_A=1", "-DHF7_H43=1", "-DHF8_UNDO15=1",
+            "-DL2N_R2V2=1", "-DXPAN_ZOOM_R2=1", "-DHF9_REVIEW=1", "-DHF9_CHECKED=1",
+            "-DHF10_SEAM25=1", "-DHF10_PORTRAIT=1", "-DHF10_REVIEW=1",
+            "-DONE_STEP_ZOOM=1", "-DHF_ALL_UNITS=1",
+        ],
+        "xdata": True,
+        "resident_build_id": "18e530aa29a667824828e1b21d1f10b15c9b6eeee4f500d5607436583789457d",
+        "resident_abi_id": "9bad13d535a686a911f246acbac36f34",
+    },
+    "merged-r1-fold-a-hf10-oz-256": {
+        "generation": 256,
+        "seed_prefix": "research/merged_line_r1/local/engine-nodiag",
+        "defines": [
+            "-DG188_R3=1", "-DUSER_SLOTS_R4=1", "-DXPAN_D123_R1=1", "-DXPAN_D1_R2=1",
+            "-DHF1=1", "-DHF3=1", "-DHF4=1", "-DHF5=1", "-DHF5_H42=1", "-DHF6=1",
+            "-DMERGED_R1=1", "-DL2N_FOLD_A=1", "-DHF7_H43=1", "-DHF8_UNDO15=1",
+            "-DL2N_R2V2=1", "-DXPAN_ZOOM_R2=1", "-DHF9_REVIEW=1", "-DHF9_CHECKED=1",
+            "-DHF10_SEAM25=1", "-DHF10_PORTRAIT=1", "-DHF10_REVIEW=1",
+            "-DONE_STEP_ZOOM=1", "-DHF_ROW_FIRST=1", "-DHF_ALL_UNITS=1",
+            "-DOZ_NO_DIAG=1", "-DHFU_FOLD=1",
+        ],
+        "xdata": True,
+        "resident_build_id": "18e530aa29a667824828e1b21d1f10b15c9b6eeee4f500d5607436583789457d",
+        "resident_abi_id": "9bad13d535a686a911f246acbac36f34",
+    },
 }
 
 
@@ -614,7 +686,7 @@ def main():
     except RuntimeError as exc:
         text = str(exc)
         found = re.search(r"\.engine VMA \[([0-9a-fA-F]+),([0-9a-fA-F]+)\]", text)
-        if found and args.profile in ("feat-hf2d", "feat-hf2", "feat-hf3d", "feat-hf3", "feat-hf4d", "feat-hf4", "feat-hf5d", "feat-hf5", "feat-hf5d-h40", "feat-hf6d", "feat-hf6", "feat-hf6d-h40", "merged-r1d", "merged-r1", "merged-r1d-fold-a", "merged-r1-fold-a", "merged-r1d-fold-a-zoom", "merged-r1-fold-a-zoom", "merged-r1-fold-a-cand", "merged-r1d-fold-a-cand", "merged-r1-fold-a-hf9", "merged-r1d-fold-a-hf9", "merged-r1-fold-a-hf9c", "merged-r1d-fold-a-hf9c", "merged-r1-fold-a-hf10"):
+        if found and args.profile in ("feat-hf2d", "feat-hf2", "feat-hf3d", "feat-hf3", "feat-hf4d", "feat-hf4", "feat-hf5d", "feat-hf5", "feat-hf5d-h40", "feat-hf6d", "feat-hf6", "feat-hf6d-h40", "merged-r1d", "merged-r1", "merged-r1d-fold-a", "merged-r1-fold-a", "merged-r1d-fold-a-zoom", "merged-r1-fold-a-zoom", "merged-r1-fold-a-cand", "merged-r1d-fold-a-cand", "merged-r1-fold-a-hf9", "merged-r1d-fold-a-hf9", "merged-r1-fold-a-hf9c", "merged-r1d-fold-a-hf9c", "merged-r1-fold-a-hf10", "merged-r1-fold-a-hf10-oz", "merged-r1-fold-a-hf10-oz-row", "merged-r1-fold-a-hf10-oz-hfu", "merged-r1-fold-a-hf10-oz-256"):
             nbytes = int(found.group(2), 16) - int(found.group(1), 16)
             hard = 98304 if args.profile.startswith("merged-") else 81920
             target = 98304 if args.profile.startswith("merged-") else 81700
@@ -649,7 +721,7 @@ def main():
     if layout.get("xdata_bytes"):
         info["xdata_bytes"] = layout["xdata_bytes"]
         info["xdata_start"] = layout["xdata_start"]
-    if args.profile in ("feat-hf2d", "feat-hf2", "feat-hf3d", "feat-hf3", "feat-hf4d", "feat-hf4", "feat-hf5d", "feat-hf5", "feat-hf5d-h40", "feat-hf6d", "feat-hf6", "feat-hf6d-h40", "merged-r1d", "merged-r1", "merged-r1d-fold-a", "merged-r1-fold-a", "merged-r1d-fold-a-zoom", "merged-r1-fold-a-zoom", "merged-r1-fold-a-cand", "merged-r1d-fold-a-cand", "merged-r1-fold-a-hf9", "merged-r1d-fold-a-hf9", "merged-r1-fold-a-hf9c", "merged-r1d-fold-a-hf9c", "merged-r1-fold-a-hf10"):
+    if args.profile in ("feat-hf2d", "feat-hf2", "feat-hf3d", "feat-hf3", "feat-hf4d", "feat-hf4", "feat-hf5d", "feat-hf5", "feat-hf5d-h40", "feat-hf6d", "feat-hf6", "feat-hf6d-h40", "merged-r1d", "merged-r1", "merged-r1d-fold-a", "merged-r1-fold-a", "merged-r1d-fold-a-zoom", "merged-r1-fold-a-zoom", "merged-r1-fold-a-cand", "merged-r1d-fold-a-cand", "merged-r1-fold-a-hf9", "merged-r1d-fold-a-hf9", "merged-r1-fold-a-hf9c", "merged-r1d-fold-a-hf9c", "merged-r1-fold-a-hf10", "merged-r1-fold-a-hf10-oz", "merged-r1-fold-a-hf10-oz-row", "merged-r1-fold-a-hf10-oz-hfu", "merged-r1-fold-a-hf10-oz-256"):
         eng = info["engine_bytes"]
         main_request = 7628 + ((info["dat_bytes"] + info["bss_bytes"] + 3) & ~3)
         hard = 98304 if args.profile.startswith("merged-") else 81920

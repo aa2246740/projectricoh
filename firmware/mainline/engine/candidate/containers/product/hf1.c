@@ -155,11 +155,110 @@ static int hf4_slot_ours(void)
     return hf4_bytes_eq(p, hf4_s12, 5u) || hf4_bytes_eq(p, hf4_s22, 5u);
 }
 
-static int hf4_active(void)
+#ifdef HF_ALL_UNITS
+#if !defined(HF5_H42) || !defined(HF7_H43) || !defined(HF9_REVIEW) || !defined(HF10_REVIEW)
+#error "HF_ALL_UNITS needs HF5_H42, HF7_H43, HF9_REVIEW and HF10_REVIEW"
+#endif
+/* 255 (hf-all-units-r1, research/hf_all_units_r1/REPORT.md 2.3): half-frame on all three A12
+ * units. 28mm (module 1) is unchanged: hfu_bits() = FF. No view or unknown unit: 00. 50mm (0)
+ * and MOUNT (2): the body image-area table 0x2057AC98 against the 28mm (g217) values,
+ * 01 = +0x24 review 640x480, 02/04 = +0x48/+0x4C small images (main YCC: H42 gate 6 compares the
+ * two literal buffers), and the K of the last H42 (half-frame on or off, read now):
+ * 08 = review descriptor K+0x160/168/16A = 0x80A6CA00/1280/640 (the hole itself checks 640x480),
+ * 10 = K+10 != 7 (0x20155DAC: 7 alternates the review buffer). Half-frame needs 07, the review
+ * flag (hole HF10) 1F. */
+static uint32_t hfu_k;
+
+#ifdef HFU_FOLD
+/* 256 (255 review item 7 V2, size only): the same reads in the same order and the same values.
+ * The table base, 0x80A6CA00 (compared twice) and 0x80C41600 are each loaded once
+ * (0x80CD7600 = 0x80C41600 + 0x96000); the empty asm keeps GCC from re-loading them. */
+static __attribute__((noinline)) uint8_t hfu_bits(void)
 {
     const Gxr2View *view = eng_validated_view();
-    return hf1_state.enabled && view && view->selected_module == 1u && fx_aspect_byte() == 1u;
+    uint32_t t = 0x2057AC98u, rv = 0x80A6CA00u, sm = 0x80C41600u;
+    const volatile uint32_t *tab;
+    uint32_t k = hfu_k;
+    uint8_t b = 0u;
+    if (!view) return 0u;                         /* eng_data admits modules 0..2 only */
+    if (view->selected_module == 1u) return 0xFFu;
+    __asm__("" : "+r"(t), "+r"(rv), "+r"(sm));
+    tab = (const volatile uint32_t *)RV_PTR(t);
+    if (tab[9] == rv) b = 1u;
+    if (tab[18] == sm) b |= 2u;
+    if (tab[19] == sm + 0x96000u) b |= 4u;
+    /* K in the ring area and word aligned is enough for a read (the values are the gate) */
+    if (k - HF_RING < HF_SLOTS * HF_SLOT && !(k & 3u)) {
+        if (RV_WORD(k + 0x160u) == rv && RV_WORD(k + 0x168u) == 0x05000280u) b |= 8u;
+        if (RV_BYTE(k + 10u) != 7u) b |= 0x10u;
+    }
+    return b;
 }
+#else
+static __attribute__((noinline)) uint8_t hfu_bits(void)
+{
+    const Gxr2View *view = eng_validated_view();
+    const volatile uint32_t *tab = (const volatile uint32_t *)RV_PTR(0x2057AC98u);
+    uint32_t k = hfu_k;
+    uint8_t b = 0u;
+    if (!view) return 0u;                         /* eng_data admits modules 0..2 only */
+    if (view->selected_module == 1u) return 0xFFu;
+    if (tab[9] == 0x80A6CA00u) b = 1u;
+    if (tab[18] == 0x80C41600u) b |= 2u;
+    if (tab[19] == 0x80CD7600u) b |= 4u;
+    /* K in the ring area and word aligned is enough for a read (the values are the gate) */
+    if (k - HF_RING < HF_SLOTS * HF_SLOT && !(k & 3u)) {
+        if (RV_WORD(k + 0x160u) == 0x80A6CA00u && RV_WORD(k + 0x168u) == 0x05000280u) b |= 8u;
+        if (RV_BYTE(k + 10u) != 7u) b |= 0x10u;
+    }
+    return b;
+}
+#endif
+
+/* The one unit predicate (hf-row-first calls it hf_unit_ok): HFU_RUN = may run half-frame,
+ * HFU_REVIEW = may arm the review flag. 28mm passes both as before. */
+#define HFU_RUN 0x07u
+#define HFU_REVIEW 0x1Fu
+#define hfu_pass(m) ((hfu_bits() & (m)) == (m))
+#endif
+
+#ifdef HF_ROW_FIRST
+#ifdef HF_ALL_UNITS
+/* 256: hf_unit_ok() only says whether the ADJ list shows the Half Frame row (all three A12
+ * units: 0 50mm, 1 28mm, 2 MOUNT). Whether half-frame runs stays hfu_pass(HFU_RUN) /
+ * hfu_pass(HFU_REVIEW) as in 255 (hf4_active, H42 reason 1, hf1_toggle, hf9_frame_key). */
+int hf_unit_ok(void)
+{
+    const Gxr2View *view = eng_validated_view();
+    return view && view->selected_module <= 2u;
+}
+#else
+int hf_unit_ok(void)
+{
+    const Gxr2View *view = eng_validated_view();
+    return view && view->selected_module == 1u;
+}
+#endif
+
+static int hf4_active(void)
+{
+#ifdef HF_ALL_UNITS
+    return hf1_state.enabled && hfu_pass(HFU_RUN) && fx_aspect_byte() == 1u;
+#else
+    return hf1_state.enabled && hf_unit_ok() && fx_aspect_byte() == 1u;
+#endif
+}
+#else
+static int hf4_active(void)
+{
+#ifdef HF_ALL_UNITS
+    return hf1_state.enabled && hfu_pass(HFU_RUN) && fx_aspect_byte() == 1u;
+#else
+    const Gxr2View *view = eng_validated_view();
+    return hf1_state.enabled && view && view->selected_module == 1u && fx_aspect_byte() == 1u;
+#endif
+}
+#endif
 #else
 static uint8_t bars_active, scan_active, hw_shown_state;
 #endif
@@ -401,7 +500,9 @@ int hf1_on_h40(const void *ctx_void, uint32_t k, uint32_t outer, uint32_t entry,
 #endif
 {
     const RvPrivateContext *ctx = ctx_void;
+#ifndef HF_ALL_UNITS
     const Gxr2View *view;
+#endif
     uint32_t ptr = 0u, other;
     uint8_t why = 0u;
     Hf1Bind bind;
@@ -448,8 +549,12 @@ int hf1_on_h40(const void *ctx_void, uint32_t k, uint32_t outer, uint32_t entry,
 #endif
 #endif
 
+#ifdef HF_ALL_UNITS
+    if (!hfu_pass(HFU_RUN)) why = 1u;
+#else
     view = eng_validated_view();
     if (!view || view->selected_module != 1u) why = 1u;
+#endif
     else if (outer != HF_OUTER) why = 2u;
     else if (entry != HF_ENTRY) why = 3u;
 #ifdef HF5_H42
@@ -608,6 +713,9 @@ int hf1_on_h40(const void *ctx_void, uint32_t k, uint32_t outer, uint32_t entry,
 #ifdef HF4
 int hf1_on_h40(const void *ctx_void, uint32_t k, uint32_t outer, uint32_t entry, int image_follow)
 {
+#ifdef HF_ALL_UNITS
+    hfu_k = k;   /* every H42, half-frame on or off; read by hfu_bits */
+#endif
     int rc = hf1_on_h40_core(ctx_void, k, outer, entry, image_follow);
     if (hf1_state.enabled) {
         int ours = hf4_slot_ours();
@@ -1611,7 +1719,11 @@ void hf9_frame_key(void)
 #ifdef HF9_CHECKED
     if (!pre) hf9.checked = 0u;
 #endif
+#ifdef HF_ALL_UNITS
+    if (hf4_active() && hfu_pass(HFU_REVIEW)) {
+#else
     if (hf4_active()) {
+#endif
         m = 1u;
         if (pre && hf1_state.state == 1u && hf9.ok && hf9.clean && hf9.ref == hf1_state.ref_count) {
 #ifdef HF9_CHECKED
@@ -1677,8 +1789,14 @@ void hf1_toggle(void)
 #ifdef HF4
         {
             int r5_ok = hf4_slot_ok();
+#ifdef HF_ALL_UNITS
+            int mod_ok = hfu_pass(HFU_RUN);
+#elif defined(HF_ROW_FIRST)
+            int mod_ok = hf_unit_ok();
+#else
             const Gxr2View *view = eng_validated_view();
             int mod_ok = (view && view->selected_module == 1u);
+#endif
             int s32_ok = hf4_bytes_eq(RV_PTR(HF4_SLOT), hf4_s32, 5u);
 #if defined(HF1_DIAG) && !defined(HF5)
             hf1_diag.l_gg = (uint8_t)((r5_ok ? 1u : 0u) | (mod_ok ? 2u : 0u) | (s32_ok ? 4u : 0u));
@@ -1739,6 +1857,21 @@ static void d4(char *p, unsigned v)
 }
 #endif
 
+#ifdef HF_ROW_FIRST
+void hf1_row_text(char out[16])
+{
+    unsigned n = fx_aspect_byte() == 1u ? 11u : 15u;
+    pn_copy(out, " Half Frame 3:2", n);
+    out[n] = 0;
+#ifdef HF_ALL_UNITS
+    /* 256: only on/off and 3:2, the same on all units (not the unit table or K: in burst
+     * modes 10/15 MOUNT and 50mm would show '!' and 28mm would not); B00 row U shows the gate */
+    if (hf1_state.enabled) out[0] = n == 11u ? '>' : '!';
+#else
+    if (hf1_state.enabled) out[0] = hf4_active() ? '>' : '!';
+#endif
+}
+#else
 void hf1_row_text(char out[14])
 {
     unsigned i;
@@ -1795,6 +1928,18 @@ void hf1_row_text(char out[14])
 #endif
 #endif
 }
+#endif
+
+#ifdef HF_ALL_UNITS
+/* B00 row 9 (255, read only; diagnostic.c draws "U" + these 5 hex digits "tteRR"): tt hfu_bits()
+ * (FF = 28mm, 1F = 50mm/MOUNT all passed, 00 = no view), e last H42 event (0 none, 1 compose,
+ * 2 photo 2 voided, 3 gate), RR its gate code (e = 3) or fb bits (e = 2). The H43 gate code
+ * (2 more digits) cost 120 B of main request and was cut (REPORT 5). */
+uint32_t hfu_diag(void)
+{
+    return (uint32_t)hfu_bits() << 12 | (uint32_t)hf1_state.last_event << 8 | hf1_state.last_reason;
+}
+#endif
 
 #ifdef HF1_DIAG
 static void fmt4(char out[14], char tag, uint8_t a, uint8_t b, uint8_t c, uint8_t d)

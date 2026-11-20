@@ -1,6 +1,6 @@
 # 主线引擎的逐字节重建
 
-`firmware/mainline/` 里的公开源码，加上本机的几份私有输入，可以逐字节重建日常引擎 `GXRCE.DAT`。当前日常版是代数 250，`7b566902db1a5354d345185de37f960b01154fcc96027f5707273957db6e9be6`，90,440 B，profile `merged-r1-fold-a-hf10`。
+`firmware/mainline/` 里的公开源码，加上本机的几份私有输入，可以逐字节重建日常引擎 `GXRCE.DAT`。当前日常版是代数 256，`59f4e5343baaa2cb97db223e4118375394e7aeaf2a79a79e0427b9f9f8df2251`，91,292 B，profile `merged-r1-fold-a-hf10-oz-256`。
 
 只有公开仓库还不够。下面列出的私有输入不在 Git 里，外部开发者需要自己准备同等的东西。本页不是刷机说明，修改后的固件可能让相机无法启动。
 
@@ -25,10 +25,10 @@
 cd firmware/mainline
 export GXR_PRIVATE_ROOT=<私有 checkout>
 /usr/bin/python3 -I -B prepare_local.py --profile g188-r2 --official-zip <官方 ZIP>
-/usr/bin/python3 -I -B build.py --profile merged-r1-fold-a-hf10 --verify
+/usr/bin/python3 -I -B build.py --profile merged-r1-fold-a-hf10-oz-256 --verify
 ```
 
-成功时最后一段 JSON 是 `"verified": true`，`dat_sha256` 等于上面的哈希。输出在 `local/build/<profile>/`，整个 `local/` 都不进 Git。用 `--profile g188-r2` 准备的覆盖层，当前源码能逐字节得到当年记录 DAT 的 profile 有：`g188-r2`（188）、`g188-r3` 到 `xpan-d123-r2-nodiag`（214–221）、`merged-r1d-fold-a` 到 `merged-r1-fold-a-hf10`（240–250）。`daily`（185）、`feat-hf*`（223–234）、`merged-r1d` 和 `merged-r1`（237、238）在当前源码上得不到当年的 DAT。要重建它们需要当时的源码，例如本地标签 `daily-20261112-g185`；公开分支不带这些标签。`--verify-against <文件>` 可以和任意已有 DAT 比较。
+成功时最后一段 JSON 是 `"verified": true`，`dat_sha256` 等于上面的哈希。输出在 `local/build/<profile>/`，整个 `local/` 都不进 Git。用 `--profile g188-r2` 准备的覆盖层，当前源码能逐字节得到当年记录 DAT 的 profile 有：`g188-r2`（188）、`g188-r3` 到 `xpan-d123-r2-nodiag`（214–221）、`merged-r1d-fold-a` 到 `merged-r1-fold-a-hf10`（240–250），以及 `merged-r1-fold-a-hf10-oz`（253）、`merged-r1-fold-a-hf10-oz-row`（254）、`merged-r1-fold-a-hf10-oz-hfu`（255）、`merged-r1-fold-a-hf10-oz-256`（256）。`daily`（185）、`feat-hf*`（223–234）、`merged-r1d` 和 `merged-r1`（237、238）在当前源码上得不到当年的 DAT。要重建它们需要当时的源码，例如本地标签 `daily-20261112-g185`；公开分支不带这些标签。`--verify-against <文件>` 可以和任意已有 DAT 比较。
 
 ## L2N 表里的 `L2N_ORIG_<VA>_<N>`
 

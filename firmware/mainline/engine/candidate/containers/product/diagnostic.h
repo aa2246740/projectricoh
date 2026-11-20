@@ -14,6 +14,22 @@ enum { DIAG_ENGINE_BYTES=5120, DIAG_BYTES=1024 };
 #define DIAG_ROWS 11 /* 245 without zoom: A a h k x y, then H R P Q X */
 #elif defined(HF1_DIAG) && defined(XPAN_ZOOM_R1) && defined(HF7_H43)
 #define DIAG_ROWS 14 /* 242: Z z A a h k, then the 8 HF rows */
+#elif defined(ONE_STEP_ZOOM)
+#if defined(HF1_DIAG) || defined(XPAN_D2_DIAG)
+#error "ONE_STEP_ZOOM adds its row to the G175 status page only"
+#endif
+#ifdef OZ_NO_DIAG
+#ifndef HF_ALL_UNITS
+#error "OZ_NO_DIAG makes room for the HF_ALL_UNITS row"
+#endif
+#define DIAG_ROWS 9 /* 256: the 8 G175 rows, then U (half-frame units); Z dropped */
+#elif defined(HF_ALL_UNITS)
+#define DIAG_ROWS 10 /* 255: the 8 G175 rows, Z (one-step zoom), then U (half-frame units) */
+#else
+#define DIAG_ROWS 9 /* 253: the 8 G175 rows, then Z (one-step zoom) */
+#endif
+#elif defined(HF_ALL_UNITS)
+#error "HF_ALL_UNITS adds its row after the ONE_STEP_ZOOM row"
 #else
 #define DIAG_ROWS 8
 #endif
@@ -35,5 +51,11 @@ void diag_reason(unsigned,uint32_t);
 void diag_engine(unsigned);
 unsigned diag_page(void);
 void diag_text(unsigned,char [14]);
+#if defined(ONE_STEP_ZOOM) && !defined(OZ_NO_DIAG)
+extern uint8_t oz_diag[6]; /* adapter.c oz_key */
+#endif
+#ifdef HF_ALL_UNITS
+uint32_t hfu_diag(void); /* hf1.c */
+#endif
 unsigned diag_code(void);
 #endif

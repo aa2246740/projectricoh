@@ -71,6 +71,12 @@ typedef struct {
 } BodyState;
 static BodyState body;
 static uint32_t boot_mode_epoch,boot_settings,boot_settings_bytes;
+#ifdef HF_ROW_FIRST
+#if !defined(HF1) || !defined(HF4)
+#error "HF_ROW_FIRST needs HF1 and HF4"
+#endif
+static uint16_t hf_open_row;
+#endif
 /* Build-time configuration (DAT only). Event codes as seen at H10 (r11).
  * fn_next/fn_prev: 0 = off. The physical Fn1/Fn2 codes are still unconfirmed
  * on the camera, so rotation ships off. ok_to_panel: OK press 0x23 on an
@@ -81,7 +87,11 @@ typedef struct { uint8_t ok_to_panel,fn_next,fn_prev,image_follow; } BodyConfig;
 const BodyConfig ig_body_config={1,0,0,1};
 _Static_assert(sizeof(AdapterIo)<=sizeof(PsStore),"adapter buffers fit the unused store");
 #ifndef ENG_HOST
+#ifdef HF_ROW_FIRST
+_Static_assert(KV_UI_TEXT==16,"effect line includes prefix, 3:2 hint and terminator");
+#else
 _Static_assert(KV_UI_TEXT==14,"effect line includes prefix and terminator");
+#endif
 #endif
 static int keep_view(RvReply *r);
 static void cache_home(void);
@@ -239,6 +249,13 @@ static unsigned uv_looks(void)
 static unsigned uv_current_row(void)
 {
     unsigned i,count=uv_looks();
+#ifdef HF_ROW_FIRST
+    unsigned base=(unsigned)hf_unit_ok();
+    if(n.ui.applied_user)return base+4+count;
+    if(n.ui.effect)for(i=0;i<count;++i)
+        if(fx_visible(eng_validated_view(),eng_validated_view()->selected_module,i)+1==n.ui.effect)return base+4+i;
+    return base+n.ui.slot-1;
+#else
 #ifdef HF1
     if(n.ui.applied_user)return 5+count;
 #else
@@ -247,11 +264,19 @@ static unsigned uv_current_row(void)
     if(n.ui.effect)for(i=0;i<count;++i)
         if(fx_visible(eng_validated_view(),eng_validated_view()->selected_module,i)+1==n.ui.effect)return 4+i;
     return n.ui.slot-1;
+#endif
 }
 static unsigned uv_saved_row(void)
 {
     const EngSavedSelection *saved=eng_saved_selection();unsigned i,count=uv_looks();
     if(!saved)return 65535;
+#ifdef HF_ROW_FIRST
+    {unsigned base=(unsigned)hf_unit_ok();
+     if(saved->user)return base+4+count;
+     if(!saved->ref.effect)return base+saved->ref.slot-1;
+     for(i=0;i<count;++i)if(fx_visible(eng_validated_view(),saved->ref.unit,i)+1==saved->ref.effect)return base+4+i;
+     return 65535;}
+#else
 #ifdef HF1
     if(saved->user)return 5+count;
 #else
@@ -260,6 +285,7 @@ static unsigned uv_saved_row(void)
     if(!saved->ref.effect)return saved->ref.slot-1;
     for(i=0;i<count;++i)if(fx_visible(eng_validated_view(),saved->ref.unit,i)+1==saved->ref.effect)return 4+i;
     return 65535;
+#endif
 }
 static int uv_adjusted(const UvLevels *levels)
 {unsigned i;for(i=0;i<KV_DATA_CONTROLS;++i)if(levels->v[i]!=(i?0:100))return 1;return 0;}
@@ -315,7 +341,9 @@ static void uv_name(char *text,unsigned slot,unsigned user,char first,const UvLe
 static unsigned uv_rows(void)
 {
     if(n.ui.screen==UV_DIAG)return DIAG_ROWS+uv_users(eng_validated_view());
-#ifdef HF1
+#ifdef HF_ROW_FIRST
+    if(n.ui.screen==UV_L1)return (unsigned)hf_unit_ok()+5+uv_looks();
+#elif defined(HF1)
     if(n.ui.screen==UV_L1)return 6+uv_looks();
 #else
     if(n.ui.screen==UV_L1)return 5+uv_looks();
@@ -337,6 +365,26 @@ static void uv_text(unsigned row,char text[KV_UI_TEXT])
     if(n.ui.screen==UV_DIAG){if(row<DIAG_ROWS)diag_text(row,text);else uv_name(text,uv_user(v,row-DIAG_ROWS)[0],row-(DIAG_ROWS-1),' ',&n.ui.saved[row-DIAG_ROWS]);return;}
     if(n.ui.screen==UV_L1){
         unsigned count=uv_looks();
+#ifdef HF_ROW_FIRST
+        unsigned base=(unsigned)hf_unit_ok(),r;
+        if(base&&!row){hf1_row_text(text);return;}
+        r=row-base;
+        if(r<4){
+            unsigned applied=eng_baseline()&&!n.ui.effect&&!n.ui.applied_user&&n.ui.slot==r+1;
+            (void)kv_ui_title(eng_knobs_view(),v->selected_module,r+1,
+                applied?&n.ui.levels:&n.values[r],eng_list()->row[r].ascii+3,applied?'>':' ',text);
+        }else if(r<4+count){
+            int index=fx_visible(v,v->selected_module,r-4);
+            text[0]=n.ui.effect==(unsigned)index+1u?(uv_adjusted(&n.ui.levels)?'*':'>'):' ';
+            fx_name(v,(unsigned)index,text+1);
+        }else {pn_copy(text," B00 Status",12);text[2]='0'+diag_code()/10;text[3]='0'+diag_code()%10;}
+        if(text[0]==' '&&row==uv_saved_row())text[0]='~';
+        if(text[0]=='>'&&eng_memory_pending()){
+            pn_copy(text,">M00 Unsaved",13);text[3]='0'+eng_memory_error();
+        }
+        {unsigned w=eng_t_warn();if(w&&r==w-1){text[1]=(char)('0'+w);pn_copy(text+2," Error",6);}}
+        return;
+#else
         if(row<4){
             unsigned applied=eng_baseline()&&!n.ui.effect&&!n.ui.applied_user&&n.ui.slot==row+1;
             (void)kv_ui_title(eng_knobs_view(),v->selected_module,row+1,
@@ -356,6 +404,7 @@ static void uv_text(unsigned row,char text[KV_UI_TEXT])
         }
         {unsigned w=eng_t_warn();if(w&&row==w-1){text[1]=(char)('0'+w);pn_copy(text+2," Error",6);}}
         return;
+#endif
     }
     if(n.ui.screen<KV_UI_SCREENS){
         pn_copy(text,n.ui.frame.text[row-n.ui.frame.top],KV_UI_TEXT);
@@ -508,9 +557,18 @@ static EngStatus uv_look_row(unsigned ordinal)
 static EngStatus uv_flat_row(unsigned row)
 {
     unsigned count=uv_looks();
+#ifdef HF_ROW_FIRST
+    unsigned base=(unsigned)hf_unit_ok();
+    if(row<base)return ENG_OK;
+    row-=base;
     if(row<4)return uv_preview(row+1,&n.values[row],0);
     if(row<4+count)return uv_look_row(row-4);
     return ENG_OK;
+#else
+    if(row<4)return uv_preview(row+1,&n.values[row],0);
+    if(row<4+count)return uv_look_row(row-4);
+    return ENG_OK;
+#endif
 }
 static EngStatus uv_move(unsigned physical)
 {
@@ -546,7 +604,12 @@ static int32_t uv_disp(void)
         if(cur>=DIAG_ROWS){unsigned u=cur-DIAG_ROWS;const uint8_t *e=uv_user(eng_validated_view(),u);
             if(!e||uv_preview(e[0],&n.ui.saved[u],u+1)!=ENG_OK)return RV_FAULT;
             if(kv_ui_nav_init(eng_knobs_view(),eng_validated_view()->selected_module,n.ui.slot,&n.ui.levels,&nav))return RV_FAULT;
-#ifdef HF1
+#if defined(HF_ROW_FIRST) && defined(HF_ALL_UNITS)
+            /* 256 (254 review P2-1): a user slot chosen here is kept when half-frame is toggled */
+            n.ui.l1_cur=(unsigned)hf_unit_ok()+4+uv_looks();hf_open_row=0xffffu;uv_nav_accept(&nav);
+#elif defined(HF_ROW_FIRST)
+            n.ui.l1_cur=(unsigned)hf_unit_ok()+4+uv_looks();uv_nav_accept(&nav);
+#elif defined(HF1)
             n.ui.l1_cur=5+uv_looks();uv_nav_accept(&nav);
 #else
             n.ui.l1_cur=4+uv_looks();uv_nav_accept(&nav);
@@ -554,7 +617,17 @@ static int32_t uv_disp(void)
             return list_bind(3)==RV_OK?RV_CONSUMED:RV_FAULT;
         }else{n.ui.screen=UV_L1;n.ui.cur=offer?offer-1:uv_current_row();n.ui.top=0;return list_bind(3)==RV_OK?RV_CONSUMED:RV_FAULT;}
     }
-#ifdef HF1
+#ifdef HF_ROW_FIRST
+    if(n.ui.screen==UV_L1&&hf_unit_ok()&&!cur){
+        hf1_toggle();
+        n.spare.io.preselect=0;
+        if(hf_open_row&&hf_open_row+1u<n.ui.count){
+            if(uv_flat_row(hf_open_row)!=ENG_OK)return RV_FAULT;
+            n.ui.cur=hf_open_row;n.ui.top=0;
+        }
+        return list_bind(3)==RV_OK?RV_CONSUMED:RV_FAULT;
+    }
+#elif defined(HF1)
     if(n.ui.screen==UV_L1&&cur+2u==n.ui.count){hf1_toggle();return list_bind(3)==RV_OK?RV_CONSUMED:RV_FAULT;}
 #endif
     if(n.ui.screen==UV_L1&&cur+1u==n.ui.count){n.ui.screen=UV_DIAG;n.ui.cur=n.ui.top=0;return list_bind(3)==RV_OK?RV_CONSUMED:RV_FAULT;}
@@ -673,6 +746,9 @@ int32_t ig_menu(const RvApi *a,uint32_t c,const RvRequest *q,RvReply *r)
     {const EngSavedSelection *saved=eng_saved_selection();unsigned row;
      if(saved){if(saved->user)n.ui.saved[saved->user-1]=saved->levels;else if(!saved->ref.effect)n.values[saved->ref.slot-1]=saved->levels;}
      uv_sync();n.ui.confirmed_user=n.ui.applied_user;n.ui.screen=UV_L1;n.ui.cur=uv_current_row();n.ui.armed=n.ui.top=0;
+#ifdef HF_ROW_FIRST
+     hf_open_row=n.ui.applied_user?0xffffu:n.ui.cur;
+#endif
      n.spare.io.preselect=0;row=saved?uv_saved_row():65535;
      if(row<65535&&!eng_active_code()){n.ui.cur=(uint16_t)row;n.spare.io.preselect=(uint16_t)(row+1);}}
     if(diag_page()){n.ui.screen=UV_DIAG;n.ui.cur=n.ui.top=0;}
@@ -769,7 +845,11 @@ static int32_t body_grain(const uint8_t *p,RvReply *r)
 static int ok_entry_row(void)
 {
     unsigned offer=n.spare.io.preselect;
-#ifdef HF1
+#ifdef HF_ROW_FIRST
+    return n.watch_view==0&&!n.failed&&!n.ui_failed&&!n.panel.open&&n.ui.screen==UV_L1&&
+        n.ui.cur>=(unsigned)hf_unit_ok()&&n.ui.cur+1u<n.ui.count&&
+        !(offer&&n.ui.cur==offer-1u)&&rv_view_owned(RV_PTR(n.context->root_address),&n.list,0);
+#elif defined(HF1)
     return n.watch_view==0&&!n.failed&&!n.ui_failed&&!n.panel.open&&n.ui.screen==UV_L1&&n.ui.cur+2u<n.ui.count&&
         !(offer&&n.ui.cur==offer-1u)&&rv_view_owned(RV_PTR(n.context->root_address),&n.list,0);
 #else
@@ -777,13 +857,80 @@ static int ok_entry_row(void)
         !(offer&&n.ui.cur==offer-1u)&&rv_view_owned(RV_PTR(n.context->root_address),&n.list,0);
 #endif
 }
+#ifdef ONE_STEP_ZOOM
+/* 253: a long OK (event 0x5D, held phase of key 24) in standby view 5 goes
+ * straight to the full-screen magnifier. The native handler 0x202A0F2C ->
+ * 0x202AC568 steps the level word 0x2037F324 0 -> 1 -> 2 -> 0 (0x20270154)
+ * and writes it with 0x20272924, which calls 0x202B4ECC on entering or
+ * leaving 2. H10 runs before the view-table dispatch. When the word is 0 and
+ * every native gate on that path is known to pass, the DAT writes 1 and
+ * returns PASS; the native step then sees level 1 and enters 2. Leaving 2
+ * stays native. Gate bits (set = not met: nothing written, same as 250):
+ *  01 word != 0                 02 capability 43 (0x205E5353) == 0
+ *  04 0x2037F883 is 1 or 3 (0x20272924 would write the shadow 0x2037F328)
+ *  08 latch 0x205D9BDE == 0     (0x202A0F2C returns before 0x202AC568)
+ *  10 0x205D9A74 == 4           (0x202A0F2C and 0x202AC568 return early)
+ *  20 0x205D9A6E != 0           (0x20272394 may be non-zero: early return)
+ *  40 S invalid or S+0x399 == 7 (0x20272494 non-zero: early return)
+ *  80 S invalid or S+0x6B4 == 5 (0x20272850 may be 5: early return)
+ * Reads only, one 32-bit write, no native call. oz_diag is RAM only (BSS,
+ * zero at load): rewrites, 0x5D seen in view 5 (both stop at 0xFF), then
+ * at the last 0x5D: 0x2037F883, the word before any write, capability 43,
+ * gate bits. */
+#ifdef OZ_NO_DIAG
+/* 256: the Z row is gone (253 passed in the field and is the daily). The gates and the one
+ * write are word for word those below; only the oz_diag counters are dropped. */
+static void oz_key(uint32_t code)
+{
+    uint32_t s,w,f,g=0;
+    if(code!=0x5du||RV_WORD(0x205d9c00u)!=5u)return;
+    w=RV_WORD(0x2037f324u);f=RV_BYTE(0x2037f883u);s=RV_WORD(0x200c0dacu);
+    if(w)g|=1;
+    if(!RV_BYTE(0x205e5353u))g|=2;
+    if(f==1||f==3)g|=4;
+    if(!RV_BYTE(0x205d9bdeu))g|=8;
+    if(RV_BYTE(0x205d9a74u)==4)g|=16;
+    if(RV_BYTE(0x205d9a6eu))g|=32;
+    if(s<0x20000000u||s>0x207ff000u||RV_WORD(0x200c0db0u)!=0x1000)g|=192;
+    else{if(RV_BYTE(s+0x399)==7)g|=64;if(RV_BYTE(s+0x6b4)==5)g|=128;}
+    if(g)return;
+    RV_WORD(0x2037f324u)=1;
+}
+#else
+uint8_t oz_diag[6];
+static void oz_key(uint32_t code)
+{
+    uint32_t s,w,f,g=0;uint8_t *o=oz_diag;
+    if(code!=0x5du||RV_WORD(0x205d9c00u)!=5u)return;
+    w=RV_WORD(0x2037f324u);f=RV_BYTE(0x2037f883u);s=RV_WORD(0x200c0dacu);
+    if(w)g|=1;
+    if(!RV_BYTE(0x205e5353u))g|=2;
+    if(f==1||f==3)g|=4;
+    if(!RV_BYTE(0x205d9bdeu))g|=8;
+    if(RV_BYTE(0x205d9a74u)==4)g|=16;
+    if(RV_BYTE(0x205d9a6eu))g|=32;
+    if(s<0x20000000u||s>0x207ff000u||RV_WORD(0x200c0db0u)!=0x1000)g|=192;
+    else{if(RV_BYTE(s+0x399)==7)g|=64;if(RV_BYTE(s+0x6b4)==5)g|=128;}
+    if(o[1]<255)o[1]++;
+    o[2]=(uint8_t)f;o[3]=(uint8_t)w;o[4]=RV_BYTE(0x205e5353u);o[5]=(uint8_t)g;
+    if(g)return;
+    RV_WORD(0x2037f324u)=1;
+    if(o[0]<255)o[0]++;
+}
+#endif
+#endif
 static int32_t body_key(uint32_t code,RvReply *r)
 {
     uint32_t view=RV_WORD(0x205d9c00);
-#ifdef HF1
+#ifdef HF_ROW_FIRST
+    if(view==56&&code==0x23&&((n.ui.screen==UV_DIAG)||(n.ui.screen==UV_L1&&(n.ui.cur+1u==n.ui.count||(hf_unit_ok()&&!n.ui.cur)))||(ig_body_config.ok_to_panel&&ok_entry_row()))){r->detail=0x25;return RV_CONSUMED;}
+#elif defined(HF1)
     if(view==56&&code==0x23&&((n.ui.screen==UV_DIAG)||(n.ui.screen==UV_L1&&(n.ui.cur+1u==n.ui.count||n.ui.cur+2u==n.ui.count))||(ig_body_config.ok_to_panel&&ok_entry_row()))){r->detail=0x25;return RV_CONSUMED;}
 #else
     if(view==56&&code==0x23&&((n.ui.screen==UV_DIAG)||(n.ui.screen==UV_L1&&n.ui.cur+1u==n.ui.count)||(ig_body_config.ok_to_panel&&ok_entry_row()))){r->detail=0x25;return RV_CONSUMED;}
+#endif
+#ifdef ONE_STEP_ZOOM
+    oz_key(code);
 #endif
     return RV_PASS;
 }
